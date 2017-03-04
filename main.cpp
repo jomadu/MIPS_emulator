@@ -123,29 +123,30 @@ Instr decode(int mc){
 void init_PR(){
     // Initialize the necesary control lines in each of the PR maps
     // TODO: Include the key strings as global variables
-    IF_ID_PR["WB"] = 0;
-    IF_ID_PR["MEM"] = 0;
-    IF_ID_PR["EX"] = 0;
-    IF_ID_PR["ID"] = 0;
-    IF_ID_BUFFER["WB"] = 0;
-    IF_ID_BUFFER["MEM"] = 0;
-    IF_ID_BUFFER["EX"] = 0;
-    IF_ID_BUFFER["ID"] = 0;
-    
+
+	Instr myInstr;
+	
+	
     ID_EX_PR["WB"] = 0;
     ID_EX_PR["MEM"] = 0;
     ID_EX_PR["EX"] = 0;
+	ID_EX_PR["INSTR"] = 0;
     ID_EX_BUFFER["WB"] = 0;
     ID_EX_BUFFER["MEM"] = 0;
     ID_EX_BUFFER["EX"] = 0;
+	ID_EX_BUFFER["INSTR"] = 0;
     
     EX_MEM_PR["WB"] = 0;
     EX_MEM_PR["MEM"] = 0;
+	EX_MEM_PR["INSTR"] = 0;
     EX_MEM_BUFFER["WB"] = 0;
     EX_MEM_BUFFER["MEM"] = 0;
+	EX_MEM_BUFFER["INSTR"] = 0;
     
     MEM_WB_PR["WB"] = 0;
+	MEM_WB_PR["INSTR"] = 0;
     MEM_WB_BUFFER["WB"] = 0;
+	MEM_WB_BUFFER["INSTR"] = 0;
 }
 
 void IF(){
