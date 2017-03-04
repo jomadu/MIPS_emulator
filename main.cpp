@@ -136,17 +136,17 @@ void init_PR(){
     ID_EX_BUFFER["EX"] = 0;
 	ID_EX_BUFFER["INSTR"] = 0;
     
-    EX_MEM_PR["WB"] = 0;
-    EX_MEM_PR["MEM"] = 0;
-	EX_MEM_PR["INSTR"] = 0;
-    EX_MEM_BUFFER["WB"] = 0;
-    EX_MEM_BUFFER["MEM"] = 0;
-	EX_MEM_BUFFER["INSTR"] = 0;
+    EX_MEM_PR[WBCtrl] = 0;
+    EX_MEM_PR[MEMCtrl] = 0;
+	EX_MEM_PR[INSTR] = 0;
+    EX_MEM_BUFFER[WBCtrl] = 0;
+    EX_MEM_BUFFER[MEMCtrl] = 0;
+	EX_MEM_BUFFER[INSTR] = 0;
     
-    MEM_WB_PR["WB"] = 0;
-	MEM_WB_PR["INSTR"] = 0;
-    MEM_WB_BUFFER["WB"] = 0;
-	MEM_WB_BUFFER["INSTR"] = 0;
+    MEM_WB_PR[WBCtrl] = 0;
+	MEM_WB_PR[INSTR] = 0;
+    MEM_WB_BUFFER[WBCtrl] = 0;
+	MEM_WB_BUFFER[INSTR] = 0;
 }
 
 void IF(){
