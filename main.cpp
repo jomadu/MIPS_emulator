@@ -12,6 +12,13 @@ bool debug = true;
 
 int memory[1250]; // 1250 Words = 5kB of Memory
 
+// Map Key Strings
+std::string WBCtrl = "WBCtrl";
+std::string MEMCtrl = "MEMCtrl";
+std::string EXCtrl = "EXCtrl";
+std::string INSTR = "INSTRCtrl";
+
+
 // Pipeline Registers
 // IF_ID_PR - Instruction Fetch/Instruction Decode and Register Read Pipeline Register
 std::map <std::string, unsigned int> IF_ID_PR;
@@ -35,6 +42,7 @@ std::map <std::string, unsigned int> EX_MEM_BUFFER;
 // MEM_WB_BUFFER - Memory/WB Pipeline Register
 std::map <std::string, unsigned int> MEM_WB_BUFFER;
 
+// Structs
 struct Instr{
     unsigned int opcode = 0;
     unsigned int rs = 0;
@@ -45,6 +53,8 @@ struct Instr{
     int immed = 0;
     unsigned int addr = 0;
 };
+
+
 
 //  Instruction Fetch
 //  Instruction Decode and Register Read
@@ -59,8 +69,6 @@ void LoadPR(){
     EX_MEM_PR = EX_MEM_BUFFER;
     MEM_WB_PR = MEM_WB_BUFFER;
 }
-
-
 
 Instr decode(int mc){
     //  MCDecode(MC)
