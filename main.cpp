@@ -140,6 +140,28 @@ void init_PR(){
     MEM_WB_BUFFER["WB"] = 0;
 }
 
+void IF(){
+}
+
+void WB(){
+}
+
+void ID(){
+}
+
+void EX(){
+}
+
+void MEM(){
+}
+
+void execute_clock_cycle(){
+    IF();
+    WB();
+    ID();
+    EX();
+    MEM();
+}
 int main(int argc, const char * argv[]) {
 
     // int opCode = 0x014B4820; // Add t1, t2, t3
