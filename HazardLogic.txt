@@ -1,0 +1,58 @@
+Data Hazards
+
+|Mux Control    |Source  | Explaination                                                                  |
+|---------------|--------|-------------------------------------------------------------------------------|
+| ForwardA = 00 | ID/EX  | The first ALU operand comes from the register file.                           |
+| ForwardA = 10 | EX/MEM | The first ALU operand is forwarded from the prior ALU result.                 |
+| ForwardA = 01 | MEM/WB | The first ALU operand is forwarded from data memory or an earlier ALU result. |
+| ForwardB = 00 | ID/EX  | The second ALU operand comes from the register file.                          |
+| ForwardB = 10 | EX/MEM | The second ALU operand is forwarded from the prior ALU results.               |
+| ForwardB = 01 | MEM/WB | The second ALU operand is forwarded from data memory or an earlier ALU result.|
+|---------------|--------|-------------------------------------------------------------------------------|
+
+------------
+No Hazard
+------------
+
+ForwardA = 00;
+ForwardB = 00;
+
+------------
+Execution Hazard
+------------
+
+if (EXMEM_PR.RegWrite & 
+    (EXMEM_PR.Rd != 0) & 
+    (EXMEM_PR.Rd == IDEX_PR.Rs)){
+    ForwardA = 10;
+}
+if (EXMEM_PR.RegWrite & 
+    (EXMEM_PR.Rd != 0) & 
+    (EXMEM_PR.Rd == IDEX_PR.Rt)){
+    ForwardB = 10;
+}
+
+------------
+Memory Hazard
+------------
+
+if (MEMWB_PR.RegWrite & 
+    (MEMWB_PR.Rd != 0) &
+    !(EXMEM_PR.RegWrite & (EXMEM_PR.Rd != 0) & (EXMEM_PR.Rd != IDEX_PR.Rs)) &
+    (MEMWB_PR.Rd == IDEX_PR.Rs)){
+    ForwardA = 01;
+}
+if (MEMWB_PR.RegWrite & 
+    (MEMWB_PR.Rd != 0) & 
+    !(EXMEM_PR.RegWrite & (EXMEM_PR.Rd != 0) & (EXMEM_PR.Rd != IDEX_PR.Rt)) &
+    (MEMWB_PR.Rd == IDEX_PR.Rt)){
+    ForwardB = 01;
+}
+
+------------
+Control Hazard (Stall)
+------------
+if (IDEX_PR.MemRead &
+    ((IDEX_PR.Rt == IFID_PR.Rs) || (IDEX_PR.Rt == IFID_PR.Rt))){
+    Stall = true;    
+}
