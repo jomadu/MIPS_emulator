@@ -7,6 +7,7 @@
 //
 
 #include <iostream>
+#include <fstream>
 #include <map>
 
 bool debug = true;
@@ -150,8 +151,15 @@ void execute_clock_cycle(){
     EX();
     MEM();
 }
+
+void import_mem(){
+    std::ifstream infile("memory.txt");
+
+}
 int main(int argc, const char * argv[]) {
 
+    
+    
     // int opCode = 0x014B4820; // Add t1, t2, t3
     int mc = 0x21280004; // Addi t0, t1, 0x4
     init_PR();
