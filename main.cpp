@@ -8,39 +8,8 @@
 
 #include <iostream>
 #include <map>
+
 bool debug = true;
-
-int memory[1250]; // 1250 Words = 5kB of Memory
-
-// Map Key Strings
-std::string WBCtrl = "WBCtrl";
-std::string MEMCtrl = "MEMCtrl";
-std::string EXCtrl = "EXCtrl";
-std::string INSTR = "INSTRCtrl";
-
-
-// Pipeline Registers
-// IF_ID_PR - Instruction Fetch/Instruction Decode and Register Read Pipeline Register
-std::map <std::string, unsigned int> IF_ID_PR;
-// ID_EX_PR - Instruction Decode and Register Read/Execute Pipeline Register
-std::map <std::string, unsigned int> ID_EX_PR;
-// EX_MEM_PR - Execute/Memory Pipeline Register
-std::map <std::string, unsigned int> EX_MEM_PR;
-// MEM_WB_PR - Memory/WB Pipeline Register
-std::map <std::string, unsigned int> MEM_WB_PR;
-
-// Pipeline Register Buffers
-// When LoadPR is called, the values in these structures are
-// loaded into the above Pipeline Registers
-//
-// IF_ID_BUFFER - Instruction Fetch/Instruction Decode and Register Read Pipeline Register
-std::map <std::string, unsigned int> IF_ID_BUFFER;
-// ID_EX_BUFFER - Instruction Decode and Register Read/Execute Pipeline Register
-std::map <std::string, unsigned int> ID_EX_BUFFER;
-// EX_MEM_BUFFER - Execute/Memory Pipeline Register
-std::map <std::string, unsigned int> EX_MEM_BUFFER;
-// MEM_WB_BUFFER - Memory/WB Pipeline Register
-std::map <std::string, unsigned int> MEM_WB_BUFFER;
 
 // Structs
 struct Instr{
@@ -54,20 +23,57 @@ struct Instr{
     unsigned int addr = 0;
 };
 
+struct PipelineRegister{
+    std::map <std::string, unsigned int> ctrl;
+    Instr instr;
+};
 
+int memory[1250]; // 1250 Words = 5kB of Memory
 
-//  Instruction Fetch
-//  Instruction Decode and Register Read
-//  Execute
-//  Memory
-//  WriteBack
+// Pipeline Registers
+PipelineRegister IFID_PR;
+PipelineRegister IDEX_PR;
+PipelineRegister EXMEM_PR;
+PipelineRegister MEMWB_PR;
+
+PipelineRegister IFID_BUFF;
+PipelineRegister IDEX_BUFF;
+PipelineRegister EXMEM_BUFF;
+PipelineRegister MEMWB_BUFF;
+
+// Map Key Strings
+std::string WBCtrl = "WBCtrl";
+std::string MEMCtrl = "MEMCtrl";
+std::string EXCtrl = "EXCtrl";
+std::string INSTR = "INSTRCtrl";
+std::string REGWRITE = "REGWRITE";
+
+void init_PR(){
+    // Initialize the necesary control lines in each of the PR maps
+    // TODO: Include the key strings as global variables
+    
+    IDEX_PR.ctrl[WBCtrl] = 0x0;
+    IDEX_PR.ctrl[MEMCtrl] = 0x0;
+    IDEX_PR.ctrl[EXCtrl] = 0x0;
+    IDEX_BUFF.ctrl[WBCtrl] = 0x0;
+    IDEX_BUFF.ctrl[MEMCtrl] = 0x0;
+    IDEX_BUFF.ctrl[EXCtrl] = 0x0;
+    
+    EXMEM_PR.ctrl[WBCtrl] = 0x0;
+    EXMEM_PR.ctrl[MEMCtrl] = 0x0;
+    EXMEM_BUFF.ctrl[WBCtrl] = 0x0;
+    EXMEM_BUFF.ctrl[MEMCtrl] = 0x0;
+    
+    MEMWB_PR.ctrl[WBCtrl] = 0x0;
+    MEMWB_BUFF.ctrl[WBCtrl] = 0x0;
+}
 
 //  LoadPR
-void LoadPR(){
-    IF_ID_PR = IF_ID_BUFFER;
-    ID_EX_PR = IF_ID_BUFFER;
-    EX_MEM_PR = EX_MEM_BUFFER;
-    MEM_WB_PR = MEM_WB_BUFFER;
+void loadPR(){
+    IFID_PR = IFID_BUFF;
+    IDEX_PR = IFID_BUFF;
+    EXMEM_PR = EXMEM_BUFF;
+    MEMWB_PR = MEMWB_BUFF;
 }
 
 Instr decode(int mc){
@@ -120,34 +126,7 @@ Instr decode(int mc){
     return myInstr;
 }
 
-void init_PR(){
-    // Initialize the necesary control lines in each of the PR maps
-    // TODO: Include the key strings as global variables
 
-	Instr myInstr;
-	
-	
-    ID_EX_PR[WBCtrl] = 0;
-    ID_EX_PR[MEMCtrl] = 0;
-    ID_EX_PR[EXCtrl] = 0;
-	ID_EX_PR[INSTR] = 0;
-    ID_EX_BUFFER[WBCtrl] = 0;
-    ID_EX_BUFFER[MEMCtrl] = 0;
-    ID_EX_BUFFER[EXCtrl] = 0;
-	ID_EX_BUFFER[INSTR] = 0;
-    
-    EX_MEM_PR[WBCtrl] = 0;
-    EX_MEM_PR[MEMCtrl] = 0;
-    EX_MEM_PR[INSTR] = 0;
-    EX_MEM_BUFFER[WBCtrl] = 0;
-    EX_MEM_BUFFER[MEMCtrl] = 0;
-    EX_MEM_BUFFER[INSTR] = 0;
-    
-    MEM_WB_PR[WBCtrl] = 0;
-	MEM_WB_PR[INSTR] = 0;
-    MEM_WB_BUFFER[WBCtrl] = 0;
-    MEM_WB_BUFFER[INSTR] = 0;
-}
 
 void IF(){
 }
@@ -174,8 +153,7 @@ void execute_clock_cycle(){
 int main(int argc, const char * argv[]) {
 
     // int opCode = 0x014B4820; // Add t1, t2, t3
-    int opCode = 0x21280004; // Addi t0, t1, 0x4
-    Instr myInstr;
-    myInstr = decode(opCode);
+    int mc = 0x21280004; // Addi t0, t1, 0x4
+    init_PR();
 }
 
