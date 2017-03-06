@@ -127,13 +127,13 @@ void init_PR(){
 	Instr myInstr;
 	
 	
-    ID_EX_PR[WBctrl] = 0;
-    ID_EX_PR[MEMctrl] = 0;
-    ID_EX_PR[EXctrl] = 0;
+    ID_EX_PR[WBCtrl] = 0;
+    ID_EX_PR[MEMCtrl] = 0;
+    ID_EX_PR[EXCtrl] = 0;
 	ID_EX_PR[INSTR] = 0;
-    ID_EX_BUFFER[WBctrl] = 0;
-    ID_EX_BUFFER[MEMctrl] = 0;
-    ID_EX_BUFFER[EXctrl] = 0;
+    ID_EX_BUFFER[WBCtrl] = 0;
+    ID_EX_BUFFER[MEMCtrl] = 0;
+    ID_EX_BUFFER[EXCtrl] = 0;
 	ID_EX_BUFFER[INSTR] = 0;
     
     EX_MEM_PR[WBCtrl] = 0;
