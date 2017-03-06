@@ -48,19 +48,24 @@ PipelineRegister EXMEM_BUFF;
 PipelineRegister MEMWB_BUFF;
 
 // Map Key Strings
-string WBCtrl = "WBCtrl";
-string MEMCtrl = "MEMCtrl";
-string EXCtrl = "EXCtrl";
-string INSTR = "INSTRCtrl";
-string REGWRITE = "REGWRITE";
+#define WBCtrl "WBCtrl"
+#define MEMCtrl "MEMCtrl"
+#define EXCtrl "EXCtrl"
+#define INSTR "INSTR"
+#define REGWRITE "REGWRITE"
 
 void init_PR(){
     // Initialize the necesary control lines in each of the PR maps
     // TODO: Include the key strings as global variables
     
+    //IFID_PR.logic[STALL] = 0x0;
+    //IFID_PR.logic[FLUSH] = 0x0;
+    
     IDEX_PR.ctrl[WBCtrl] = 0x0;
     IDEX_PR.ctrl[MEMCtrl] = 0x0;
     IDEX_PR.ctrl[EXCtrl] = 0x0;
+    //IDEX_PR.logic[STALL] = 0x0;
+    
     IDEX_BUFF.ctrl[WBCtrl] = 0x0;
     IDEX_BUFF.ctrl[MEMCtrl] = 0x0;
     IDEX_BUFF.ctrl[EXCtrl] = 0x0;
