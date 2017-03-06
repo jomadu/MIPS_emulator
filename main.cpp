@@ -30,6 +30,7 @@ struct Instr{
 
 struct PipelineRegister{
     map <string, unsigned int> ctrl;
+	map <string, unsigned int> logic;
     Instr instr;
 };
 
@@ -55,8 +56,8 @@ PipelineRegister MEMWB_BUFF;
 #define REGWRITE "REGWRITE"
 
 void init_PR(){
-    // Initialize the necesary control lines in each of the PR maps
-    // TODO: Include the key strings as global variables
+    // Initialize the necessary control lines in each of the PR maps
+	//TODO: Initialize the logic lines for each
     
     //IFID_PR.logic[STALL] = 0x0;
     //IFID_PR.logic[FLUSH] = 0x0;
@@ -95,6 +96,7 @@ Instr decode(int mc){
     //  MCDecode(MC)
     //  Input -> MC in 8 digit HEX int
     //  Returns -> Instruction Object
+	// TODO: make input address instead of machine code
     Instr myInstr;
     
     unsigned int opcodeMask = 0xFC000000;
@@ -105,6 +107,8 @@ Instr decode(int mc){
     unsigned int functMask = 0x1F;
     unsigned int immedMask = 0xFFFF;
     unsigned int addrMask = 0x3FFFFFF;
+
+	// TODO: Instantiate the shift amounts for masked elements
     
     myInstr.opcode = (mc & opcodeMask) >> 26;
     myInstr.rs = (mc & rsMask) >> 21;
