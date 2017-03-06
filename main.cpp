@@ -7,8 +7,12 @@
 //
 
 #include <iostream>
-#include <fstream>
+#include <sstream>
 #include <map>
+#include <vector>
+#include <stdio.h>
+
+using namespace std;
 
 bool debug = true;
 
@@ -25,11 +29,12 @@ struct Instr{
 };
 
 struct PipelineRegister{
-    std::map <std::string, unsigned int> ctrl;
+    map <string, unsigned int> ctrl;
     Instr instr;
 };
 
-int memory[1250]; // 1250 Words = 5kB of Memory
+int MEMORY[1250]; // 1250 Words = 5kB of Memory
+int MEMORY_START;
 
 // Pipeline Registers
 PipelineRegister IFID_PR;
@@ -43,11 +48,11 @@ PipelineRegister EXMEM_BUFF;
 PipelineRegister MEMWB_BUFF;
 
 // Map Key Strings
-std::string WBCtrl = "WBCtrl";
-std::string MEMCtrl = "MEMCtrl";
-std::string EXCtrl = "EXCtrl";
-std::string INSTR = "INSTRCtrl";
-std::string REGWRITE = "REGWRITE";
+string WBCtrl = "WBCtrl";
+string MEMCtrl = "MEMCtrl";
+string EXCtrl = "EXCtrl";
+string INSTR = "INSTRCtrl";
+string REGWRITE = "REGWRITE";
 
 void init_PR(){
     // Initialize the necesary control lines in each of the PR maps
@@ -67,6 +72,8 @@ void init_PR(){
     
     MEMWB_PR.ctrl[WBCtrl] = 0x0;
     MEMWB_BUFF.ctrl[WBCtrl] = 0x0;
+    
+    return;
 }
 
 //  LoadPR
@@ -75,6 +82,8 @@ void loadPR(){
     IDEX_PR = IFID_BUFF;
     EXMEM_PR = EXMEM_BUFF;
     MEMWB_PR = MEMWB_BUFF;
+    
+    return;
 }
 
 Instr decode(int mc){
@@ -152,16 +161,70 @@ void execute_clock_cycle(){
     MEM();
 }
 
-void import_mem(){
-    std::ifstream infile("memory.txt");
-
+unsigned int memoryIdx(unsigned int memoryAddr){
+    return (memoryAddr - MEMORY_START)/4;
 }
+
+void import_memory_V2(char * file){
+    char buffer[80];
+    char c_addr[80];
+    char c_val[80];
+    string s_addr;
+    string s_val;
+    int hex_addr;
+    int hex_val;
+    
+    FILE *fp;
+    int i = 0;
+    int memIdx = 0;
+    stringstream ss;
+    
+    
+    if ((fp = fopen(file,"r")) == NULL)
+    {
+        printf("Could not open %s\n",file);
+        exit(1);
+    }
+    
+    while ( !feof(fp))
+    {
+        // read in the line and make sure it was successful
+        if (fgets(buffer,500,fp) != NULL)
+        {
+            sscanf(buffer, "%s  %s", c_addr, c_val);
+            
+            ss << c_addr;
+            ss >> s_addr;
+            hex_addr = stoi(s_addr.substr(2,8),nullptr,16);
+            
+            ss.clear();
+            
+            ss << c_val;
+            ss >> s_val;
+            hex_val = stoi(s_val.substr(2,8),nullptr,16);
+            
+            ss.clear();
+            
+            if(i == 0){
+                MEMORY_START = hex_addr;
+            }
+            
+            memIdx = memoryIdx(hex_addr);
+            MEMORY[memIdx] = hex_val;
+            
+            printf("%d: %s",i++,buffer);
+        }
+    }
+}
+
 int main(int argc, const char * argv[]) {
 
     
-    
+    char file [] = "memory.txt";
     // int opCode = 0x014B4820; // Add t1, t2, t3
     int mc = 0x21280004; // Addi t0, t1, 0x4
     init_PR();
+    import_memory_V2(file);
+    return 0;
 }
 
