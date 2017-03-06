@@ -138,15 +138,15 @@ void init_PR(){
     
     EX_MEM_PR[WBCtrl] = 0;
     EX_MEM_PR[MEMCtrl] = 0;
-	EX_MEM_PR[INSTR] = 0;
+    EX_MEM_PR[INSTR] = 0;
     EX_MEM_BUFFER[WBCtrl] = 0;
     EX_MEM_BUFFER[MEMCtrl] = 0;
-	EX_MEM_BUFFER[INSTR] = 0;
+    EX_MEM_BUFFER[INSTR] = 0;
     
     MEM_WB_PR[WBCtrl] = 0;
 	MEM_WB_PR[INSTR] = 0;
     MEM_WB_BUFFER[WBCtrl] = 0;
-	MEM_WB_BUFFER[INSTR] = 0;
+    MEM_WB_BUFFER[INSTR] = 0;
 }
 
 void IF(){
