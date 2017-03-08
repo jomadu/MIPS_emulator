@@ -35,7 +35,8 @@ struct PipelineRegister{
 };
 
 // Memory
-unsigned int MEMORY[1250]; // 1250 Words = 5kB of Memory
+unsigned int MEMORY_SIZE = 1250;
+unsigned int MEMORY[MEMORY_SIZE]; // 1250 Words = 5kB of Memory
 unsigned int MEMORY_START = 0x0;
 
 // Program Counter
@@ -121,6 +122,41 @@ void initPR(){
     MEMWB_PR.logic[RFWRITEREG] = 0x0;
     MEMWB_PR.logic[MEMREADDATA] = 0x0;
     
+    IFID_BUFF.logic[STALL] = 0x0;
+    IFID_BUFF.logic[FLUSH] = 0x0;
+    IFID_BUFF.logic[PCPLUS4] = 0x0;
+    
+    IDEX_BUFF.ctrl[MEMTOREG] = 0x0;
+    IDEX_BUFF.ctrl[REGWRITE] = 0x0;
+    IDEX_BUFF.ctrl[MEMREAD] = 0x0;
+    IDEX_BUFF.ctrl[MEMWRITE] = 0x0;
+    IDEX_BUFF.ctrl[BRANCH] = 0x0;
+    IDEX_BUFF.ctrl[EXCtrl] = 0x0;
+    IDEX_BUFF.ctrl[ALUSRC] = 0x0;
+    IDEX_BUFF.ctrl[ALUOP0] = 0x0;
+    IDEX_BUFF.ctrl[ALUOP1] = 0x0;
+    IDEX_BUFF.ctrl[REGDST] = 0x0;
+    IDEX_BUFF.logic[PCPLUS4] = 0x0;
+    IDEX_BUFF.logic[RFREADDATA1] = 0x0;
+    IDEX_BUFF.logic[RFREADDATA2] = 0x0;
+    IDEX_BUFF.logic[SIGNEX] = 0x0;
+    
+    EXMEM_BUFF.ctrl[MEMTOREG] = 0x0;
+    EXMEM_BUFF.ctrl[REGWRITE] = 0x0;
+    EXMEM_BUFF.ctrl[MEMREAD] = 0x0;
+    EXMEM_BUFF.ctrl[MEMWRITE] = 0x0;
+    EXMEM_BUFF.ctrl[BRANCH] = 0x0;
+    EXMEM_BUFF.logic[BRANCHTARGET] = 0x0;
+    EXMEM_BUFF.logic[ALUCOMPARE] = 0x0;
+    EXMEM_BUFF.logic[ALURESULT] = 0x0;
+    EXMEM_BUFF.logic[MEMWRITEDATA] = 0x0;
+    EXMEM_BUFF.logic[REGDST] = 0x0;
+    
+    MEMWB_BUFF.ctrl[MEMTOREG] = 0x0;
+    MEMWB_BUFF.ctrl[REGWRITE] = 0x0;
+    MEMWB_BUFF.logic[RFWRITEREG] = 0x0;
+    MEMWB_BUFF.logic[MEMREADDATA] = 0x0;
+    
     return;
 }
 
@@ -139,14 +175,29 @@ unsigned int memoryIdx(unsigned int memoryAddr){
     return (memoryAddr - MEMORY_START)/4;
 }
 
-// Load MC/Data from MEMORY
-unsigned int loadData(unsigned int addr){
+// Fetch Instruction from low MEMORY
+unsigned int fetchInstr(unsigned int addr){
     int memIdx = memoryIdx(addr);
     return MEMORY[memIdx];
 }
-// Store MC/Data in MEMORY
-void storeData(unsigned int data, unsigned int addr){
+// Store Instruction in low MEMORY
+void storeInstr(unsigned int mc, unsigned int addr){
     int memIdx = memoryIdx(addr);
+    MEMORY[memIdx] = mc;
+    return;
+}
+
+// Load Data from high MEMORY
+unsigned int loadData(unsigned int addr){
+    // FUTURE TODO: This may screw things up royally (off by one error?)
+    int memIdx = MEMORY_SIZE - memoryIdx(addr);
+    return MEMORY[memIdx];
+}
+
+// Store Data in high MEMORY
+void storeData(unsigned int data, unsigned int addr){
+    // FUTURE TODO: SEE ABOVE OR BEAR THE CONSEQUENCES
+    int memIdx = MEMORY_SIZE - memoryIdx(addr);
     MEMORY[memIdx] = data;
     return;
 }
