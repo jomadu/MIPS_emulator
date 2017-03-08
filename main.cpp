@@ -225,8 +225,6 @@ Instr decode(unsigned int addr){
     unsigned int shamtShift = 6;
     
     unsigned int mc = loadData(addr);
-
-	// TODO: Instantiate the shift amounts for masked elements
     
     myInstr.opcode = (mc & opcodeMask) >> opcodeShift;
     myInstr.rs = (mc & rsMask) >> rsShift;
@@ -266,6 +264,9 @@ Instr decode(unsigned int addr){
 
 
 void IF(){
+    // Must deal with Stall, Flush, from Hazard Control Unit (see logic file)
+    
+    
 }
 
 void WB(){
