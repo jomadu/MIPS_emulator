@@ -34,8 +34,9 @@ struct PipelineRegister{
     Instr instr;
 };
 
+// Memory
 int MEMORY[1250]; // 1250 Words = 5kB of Memory
-int MEMORY_START;
+int MEMORY_START = 0;
 
 // Pipeline Registers
 PipelineRegister IFID_PR;
@@ -57,7 +58,7 @@ PipelineRegister MEMWB_BUFF;
 #define STALL "STALL"
 #define FLUSH "FLUSH"
 
-void init_PR(){
+void initPR(){
     // Initialize the necessary control lines in each of the PR maps
 	//TODO: Initialize the logic lines for each
     
@@ -94,11 +95,28 @@ void loadPR(){
     return;
 }
 
-Instr decode(int mc){
+
+unsigned int memoryIdx(unsigned int memoryAddr){
+    return (memoryAddr - MEMORY_START)/4;
+}
+
+// Load MC/Data from MEMORY
+unsigned int loadData(unsigned int addr){
+    int memIdx = memoryIdx(addr);
+    return MEMORY[memIdx];
+}
+// Store MC/Data in MEMORY
+void storeData(unsigned int data, unsigned int addr){
+    int memIdx = memoryIdx(addr);
+    MEMORY[memIdx] = data;
+    return;
+}
+
+
+Instr decode(unsigned int addr){
     //  MCDecode(MC)
     //  Input -> MC in 8 digit HEX int
     //  Returns -> Instruction Object
-	// TODO: make input address instead of machine code
     Instr myInstr;
     
     unsigned int opcodeMask = 0xFC000000;
@@ -109,14 +127,22 @@ Instr decode(int mc){
     unsigned int functMask = 0x1F;
     unsigned int immedMask = 0xFFFF;
     unsigned int addrMask = 0x3FFFFFF;
+    
+    unsigned int opcodeShift = 26;
+    unsigned int rsShift = 21;
+    unsigned int rtShift = 16;
+    unsigned int rdShift = 11;
+    unsigned int shamtShift = 6;
+    
+    unsigned int mc = loadData(addr);
 
 	// TODO: Instantiate the shift amounts for masked elements
     
-    myInstr.opcode = (mc & opcodeMask) >> 26;
-    myInstr.rs = (mc & rsMask) >> 21;
-    myInstr.rt = (mc & rtMask) >> 16;
-    myInstr.rd = (mc & rdMask) >> 11;
-    myInstr.shamt = (mc & shamtMask) >> 6;
+    myInstr.opcode = (mc & opcodeMask) >> opcodeShift;
+    myInstr.rs = (mc & rsMask) >> rsShift;
+    myInstr.rt = (mc & rtMask) >> rtShift;
+    myInstr.rd = (mc & rdMask) >> rdShift;
+    myInstr.shamt = (mc & shamtMask) >> shamtMask;
     myInstr.funct = (mc & functMask);
     myInstr.immed = (mc & immedMask);
     myInstr.addr = (mc & addrMask);
@@ -164,7 +190,7 @@ void EX(){
 void MEM(){
 }
 
-void execute_clock_cycle(){
+void executeClockCycle(){
     IF();
     WB();
     ID();
@@ -172,22 +198,17 @@ void execute_clock_cycle(){
     MEM();
 }
 
-unsigned int memoryIdx(unsigned int memoryAddr){
-    return (memoryAddr - MEMORY_START)/4;
-}
-
-void import_memory_V2(char * file){
+void importMemory(char * file){
     char buffer[80];
-    char c_addr[80];
-    char c_val[80];
-    string s_addr;
-    string s_val;
-    int hex_addr;
-    int hex_val;
+    char cAddr[80];
+    char cData[80];
+    string sAddr;
+    string sData;
+    int iAddr;
+    int iData;
     
     FILE *fp;
     int i = 0;
-    int memIdx = 0;
     stringstream ss;
     
     
@@ -202,26 +223,25 @@ void import_memory_V2(char * file){
         // read in the line and make sure it was successful
         if (fgets(buffer,500,fp) != NULL)
         {
-            sscanf(buffer, "%s  %s", c_addr, c_val);
+            sscanf(buffer, "%s  %s", cAddr, cData);
             
-            ss << c_addr;
-            ss >> s_addr;
-            hex_addr = stoi(s_addr.substr(2,8),nullptr,16);
+            ss << cAddr;
+            ss >> sAddr;
+            iAddr = stoi(sAddr.substr(2,8),nullptr,16);
             
             ss.clear();
             
-            ss << c_val;
-            ss >> s_val;
-            hex_val = stoi(s_val.substr(2,8),nullptr,16);
+            ss << cData;
+            ss >> sData;
+            iData = stoi(sData.substr(2,8),nullptr,16);
             
             ss.clear();
             
             if(i == 0){
-                MEMORY_START = hex_addr;
+                MEMORY_START = iAddr;
             }
             
-            memIdx = memoryIdx(hex_addr);
-            MEMORY[memIdx] = hex_val;
+            storeData(iData, iAddr);
             
             printf("%d: %s",i++,buffer);
         }
@@ -229,13 +249,9 @@ void import_memory_V2(char * file){
 }
 
 int main(int argc, const char * argv[]) {
-
-    
     char file [] = "memory.txt";
-    // int opCode = 0x014B4820; // Add t1, t2, t3
-    int mc = 0x21280004; // Addi t0, t1, 0x4
-    init_PR();
-    import_memory_V2(file);
+    initPR();
+    importMemory(file);
     return 0;
 }
 
