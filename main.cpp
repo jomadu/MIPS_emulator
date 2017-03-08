@@ -72,6 +72,15 @@ PipelineRegister MEMWB_BUFF;
 #define REGDST "REGDST"
 #define MEMREADDATA "MEMREADDATA"
 #define MEMBYPASS "MEMBYPASS"
+#define REGDST "REGDST"
+#define ALUSRC "ALUSRC"
+#define MEMTOREG "MEMTOREG"
+#define REGWRITE "REGWRITE"
+#define MEMREAD "MEMREAD"
+#define MEMWRITE "MEMWRITE"
+#define BRANCH "BRANCH"
+#define ALUOP1 "ALUOP1"
+#define ALUOP0 "ALUOP0"
 
 void initPR(){
     // Initialize the necessary control lines in each of the PR maps
@@ -81,23 +90,34 @@ void initPR(){
     IFID_PR.logic[FLUSH] = 0x0;
     IFID_PR.logic[PCPLUS4] = 0x0;
     
-    IDEX_PR.ctrl[WBCtrl] = 0x0;
-    IDEX_PR.ctrl[MEMCtrl] = 0x0;
+    IDEX_PR.ctrl[MEMTOREG] = 0x0;
+    IDEX_PR.ctrl[REGWRITE] = 0x0;
+    IDEX_PR.ctrl[MEMREAD] = 0x0;
+    IDEX_PR.ctrl[MEMWRITE] = 0x0;
+    IDEX_PR.ctrl[BRANCH] = 0x0;
     IDEX_PR.ctrl[EXCtrl] = 0x0;
+    IDEX_PR.ctrl[ALUSRC] = 0x0;
+    IDEX_PR.ctrl[ALUOP0] = 0x0;
+    IDEX_PR.ctrl[ALUOP1] = 0x0;
+    IDEX_PR.ctrl[REGDST] = 0x0;
     IDEX_PR.logic[PCPLUS4] = 0x0;
     IDEX_PR.logic[RFREADDATA1] = 0x0;
     IDEX_PR.logic[RFREADDATA2] = 0x0;
     IDEX_PR.logic[SIGNEX] = 0x0;
     
-    EXMEM_PR.ctrl[WBCtrl] = 0x0;
-    EXMEM_PR.ctrl[MEMCtrl] = 0x0;
+    EXMEM_PR.ctrl[MEMTOREG] = 0x0;
+    EXMEM_PR.ctrl[REGWRITE] = 0x0;
+    EXMEM_PR.ctrl[MEMREAD] = 0x0;
+    EXMEM_PR.ctrl[MEMWRITE] = 0x0;
+    EXMEM_PR.ctrl[BRANCH] = 0x0;
     EXMEM_PR.logic[BRANCHTARGET] = 0x0;
     EXMEM_PR.logic[ALUCOMPARE] = 0x0;
     EXMEM_PR.logic[ALURESULT] = 0x0;
     EXMEM_PR.logic[MEMWRITEDATA] = 0x0;
     EXMEM_PR.logic[REGDST] = 0x0;
     
-    MEMWB_PR.ctrl[WBCtrl] = 0x0;
+    MEMWB_PR.ctrl[MEMTOREG] = 0x0;
+    MEMWB_PR.ctrl[REGWRITE] = 0x0;
     MEMWB_PR.logic[RFWRITEREG] = 0x0;
     MEMWB_PR.logic[MEMREADDATA] = 0x0;
     
