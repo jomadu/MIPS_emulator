@@ -54,13 +54,15 @@ PipelineRegister MEMWB_BUFF;
 #define EXCtrl "EXCtrl"
 #define INSTR "INSTR"
 #define REGWRITE "REGWRITE"
+#define STALL "STALL"
+#define FLUSH "FLUSH"
 
 void init_PR(){
     // Initialize the necessary control lines in each of the PR maps
 	//TODO: Initialize the logic lines for each
     
-    //IFID_PR.logic[STALL] = 0x0;
-    //IFID_PR.logic[FLUSH] = 0x0;
+    IFID_PR.logic[STALL] = 0x0;
+    IFID_PR.logic[FLUSH] = 0x0;
     
     IDEX_PR.ctrl[WBCtrl] = 0x0;
     IDEX_PR.ctrl[MEMCtrl] = 0x0;
