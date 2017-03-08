@@ -35,8 +35,11 @@ struct PipelineRegister{
 };
 
 // Memory
-int MEMORY[1250]; // 1250 Words = 5kB of Memory
-int MEMORY_START = 0;
+unsigned int MEMORY[1250]; // 1250 Words = 5kB of Memory
+unsigned int MEMORY_START = 0x0;
+
+// Program Counter
+unsigned int PC = 0x0;
 
 // Pipeline Registers
 PipelineRegister IFID_PR;
@@ -57,6 +60,18 @@ PipelineRegister MEMWB_BUFF;
 #define REGWRITE "REGWRITE"
 #define STALL "STALL"
 #define FLUSH "FLUSH"
+#define PCPLUS4 "PCPLUS4"
+#define RFWRITEREG "RFWRITEREG"
+#define RFREADDATA1 "RFREADDATA1"
+#define RFREADDATA2 "RFREADDATA2"
+#define SIGNEX "SIGNEX"
+#define BRANCHTARGET "BRANCHTARGET"
+#define ALUCOMPARE "ALUCOMPARE"
+#define ALURESULT "ALURESULT"
+#define MEMWRITEDATA "MEMWRITEDATA"
+#define REGDST "REGDST"
+#define MEMREADDATA "MEMREADDATA"
+#define MEMBYPASS "MEMBYPASS"
 
 void initPR(){
     // Initialize the necessary control lines in each of the PR maps
@@ -64,23 +79,27 @@ void initPR(){
     
     IFID_PR.logic[STALL] = 0x0;
     IFID_PR.logic[FLUSH] = 0x0;
+    IFID_PR.logic[PCPLUS4] = 0x0;
     
     IDEX_PR.ctrl[WBCtrl] = 0x0;
     IDEX_PR.ctrl[MEMCtrl] = 0x0;
     IDEX_PR.ctrl[EXCtrl] = 0x0;
-    //IDEX_PR.logic[STALL] = 0x0;
-    
-    IDEX_BUFF.ctrl[WBCtrl] = 0x0;
-    IDEX_BUFF.ctrl[MEMCtrl] = 0x0;
-    IDEX_BUFF.ctrl[EXCtrl] = 0x0;
+    IDEX_PR.logic[PCPLUS4] = 0x0;
+    IDEX_PR.logic[RFREADDATA1] = 0x0;
+    IDEX_PR.logic[RFREADDATA2] = 0x0;
+    IDEX_PR.logic[SIGNEX] = 0x0;
     
     EXMEM_PR.ctrl[WBCtrl] = 0x0;
     EXMEM_PR.ctrl[MEMCtrl] = 0x0;
-    EXMEM_BUFF.ctrl[WBCtrl] = 0x0;
-    EXMEM_BUFF.ctrl[MEMCtrl] = 0x0;
+    EXMEM_PR.logic[BRANCHTARGET] = 0x0;
+    EXMEM_PR.logic[ALUCOMPARE] = 0x0;
+    EXMEM_PR.logic[ALURESULT] = 0x0;
+    EXMEM_PR.logic[MEMWRITEDATA] = 0x0;
+    EXMEM_PR.logic[REGDST] = 0x0;
     
     MEMWB_PR.ctrl[WBCtrl] = 0x0;
-    MEMWB_BUFF.ctrl[WBCtrl] = 0x0;
+    MEMWB_PR.logic[RFWRITEREG] = 0x0;
+    MEMWB_PR.logic[MEMREADDATA] = 0x0;
     
     return;
 }
