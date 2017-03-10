@@ -11,6 +11,7 @@
 #include <map>
 #include <vector>
 #include <stdio.h>
+#include "strings.h"
 
 using namespace std;
 
@@ -34,9 +35,24 @@ struct PipelineRegister{
     Instr instr;
 };
 
+struct HarzardUnit{
+    bool stall;
+    bool flush;
+};
+
+struct ForwardUnit{
+    unsigned int forwardA;
+    unsigned int forwardB;
+};
+
+struct RegisterFile{
+    map<String, unsigned int> str2idxmap;
+    unsigned int r[31];
+};
+
 // Memory
 unsigned int MEMORY_SIZE = 1250;
-unsigned int MEMORY[MEMORY_SIZE]; // 1250 Words = 5kB of Memory
+unsigned int MEMORY[1250]; // 1250 Words = 5kB of Memory
 unsigned int MEMORY_START = 0x0;
 
 // Program Counter
@@ -53,37 +69,17 @@ PipelineRegister IDEX_BUFF;
 PipelineRegister EXMEM_BUFF;
 PipelineRegister MEMWB_BUFF;
 
-// Map Key Strings
-#define WBCtrl "WBCtrl"
-#define MEMCtrl "MEMCtrl"
-#define EXCtrl "EXCtrl"
-#define INSTR "INSTR"
-#define REGWRITE "REGWRITE"
-#define STALL "STALL"
-#define FLUSH "FLUSH"
-#define PCPLUS4 "PCPLUS4"
-#define RFWRITEREG "RFWRITEREG"
-#define RFREADDATA1 "RFREADDATA1"
-#define RFREADDATA2 "RFREADDATA2"
-#define SIGNEX "SIGNEX"
-#define BRANCHTARGET "BRANCHTARGET"
-#define ALUCOMPARE "ALUCOMPARE"
-#define ALURESULT "ALURESULT"
-#define MEMWRITEDATA "MEMWRITEDATA"
-#define REGDST "REGDST"
-#define MEMREADDATA "MEMREADDATA"
-#define MEMBYPASS "MEMBYPASS"
-#define REGDST "REGDST"
-#define ALUSRC "ALUSRC"
-#define MEMTOREG "MEMTOREG"
-#define REGWRITE "REGWRITE"
-#define MEMREAD "MEMREAD"
-#define MEMWRITE "MEMWRITE"
-#define BRANCH "BRANCH"
-#define ALUOP1 "ALUOP1"
-#define ALUOP0 "ALUOP0"
+// Hazard Unit
+HarzardUnit HAZ;
 
-void initPR(){
+// Forwarding Unit
+ForwardUnit FRWD;
+
+// Register File
+RegisterFile REGFILE;
+
+
+void init(){
     // Initialize the necessary control lines in each of the PR maps
 	//TODO: Initialize the logic lines for each
     
@@ -96,7 +92,6 @@ void initPR(){
     IDEX_PR.ctrl[MEMREAD] = 0x0;
     IDEX_PR.ctrl[MEMWRITE] = 0x0;
     IDEX_PR.ctrl[BRANCH] = 0x0;
-    IDEX_PR.ctrl[EXCtrl] = 0x0;
     IDEX_PR.ctrl[ALUSRC] = 0x0;
     IDEX_PR.ctrl[ALUOP0] = 0x0;
     IDEX_PR.ctrl[ALUOP1] = 0x0;
@@ -131,7 +126,6 @@ void initPR(){
     IDEX_BUFF.ctrl[MEMREAD] = 0x0;
     IDEX_BUFF.ctrl[MEMWRITE] = 0x0;
     IDEX_BUFF.ctrl[BRANCH] = 0x0;
-    IDEX_BUFF.ctrl[EXCtrl] = 0x0;
     IDEX_BUFF.ctrl[ALUSRC] = 0x0;
     IDEX_BUFF.ctrl[ALUOP0] = 0x0;
     IDEX_BUFF.ctrl[ALUOP1] = 0x0;
@@ -157,6 +151,49 @@ void initPR(){
     MEMWB_BUFF.logic[RFWRITEREG] = 0x0;
     MEMWB_BUFF.logic[MEMREADDATA] = 0x0;
     
+    HAZ.flush = false;
+    HAZ.stall = false;
+    
+    FRWD.forwardA = false;
+    FRWD.forwardB = false;
+    
+    for (int i = 0; i <= 31; i++){
+        REGFILE.r[i] = 0x0;
+    }
+    
+    REGFILE.str2idxmap[ZERO] = 0;
+    REGFILE.str2idxmap[AT] = 1;
+    REGFILE.str2idxmap[V0] = 2;
+    REGFILE.str2idxmap[V1] = 3;
+    REGFILE.str2idxmap[A0] = 4;
+    REGFILE.str2idxmap[A1] = 5;
+    REGFILE.str2idxmap[A2] = 6;
+    REGFILE.str2idxmap[A3] = 7;
+    REGFILE.str2idxmap[T0] = 8;
+    REGFILE.str2idxmap[T1] = 9;
+    REGFILE.str2idxmap[T2] = 10;
+    REGFILE.str2idxmap[T3] = 11;
+    REGFILE.str2idxmap[T4] = 12;
+    REGFILE.str2idxmap[T5] = 13;
+    REGFILE.str2idxmap[T6] = 14;
+    REGFILE.str2idxmap[T7] = 15;
+    REGFILE.str2idxmap[T8] = 24;
+    REGFILE.str2idxmap[T9] = 25;
+    REGFILE.str2idxmap[S0] = 16;
+    REGFILE.str2idxmap[S1] = 17;
+    REGFILE.str2idxmap[S2] = 18;
+    REGFILE.str2idxmap[S3] = 19;
+    REGFILE.str2idxmap[S4] = 20;
+    REGFILE.str2idxmap[S5] = 21;
+    REGFILE.str2idxmap[S6] = 22;
+    REGFILE.str2idxmap[S7] = 23;
+    REGFILE.str2idxmap[K0] = 26;
+    REGFILE.str2idxmap[K1] = 27;
+    REGFILE.str2idxmap[GP] = 28;
+    REGFILE.str2idxmap[SP] = 29;
+    REGFILE.str2idxmap[FP] = 30;
+    REGFILE.str2idxmap[RA] = 31;
+    
     return;
 }
 
@@ -170,7 +207,7 @@ void loadPR(){
     return;
 }
 
-
+// Translate memoryAddr to memoryIdx
 unsigned int memoryIdx(unsigned int memoryAddr){
     return (memoryAddr - MEMORY_START)/4;
 }
@@ -262,17 +299,48 @@ Instr decode(unsigned int addr){
 }
 
 
-
 void IF(){
     // Must deal with Stall, Flush, from Hazard Control Unit (see logic file)
+    bool PCSrc;
     
     
+    if (!HAZ.flush && !HAZ.stall){
+        //Nominal Operation
+        PCSrc = EXMEM_PR.logic[BRANCH] && EXMEM_PR.logic[ALUCOMPARE];
+        
+        if (PCSrc){
+            PC = EXMEM_PR.logic[BRANCHTARGET];
+        }
+        else{
+            PC = IFID_PR.logic[PCPLUS4];
+        }
+        
+    }
+    else if (HAZ.flush){
+        //Flush instruction in IF stage
+        //Set control bits to zero
+        //Set PC to branch target
+    }
+    else{
+        //Stall instruction in IF stage
+        //Keep the PC in the same place
+        //Change instruction to sll $zero, $zero, $zero
+    }
+    
+    IFID_BUFF.logic[PCPLUS4] = PC + 4;
+    
+    IFID_BUFF.instr = decode(PC);
+    
+    if(HAZ.flush){
+        
+    }
 }
 
 void WB(){
 }
 
 void ID(){
+    //Update Hazard Detection Unit
 }
 
 void EX(){
@@ -341,7 +409,7 @@ void importMemory(char * file){
 
 int main(int argc, const char * argv[]) {
     char file [] = "memory.txt";
-    initPR();
+    init();
     importMemory(file);
     return 0;
 }
