@@ -83,8 +83,6 @@ void init(){
     // Initialize the necessary control lines in each of the PR maps
 	//TODO: Initialize the logic lines for each
     
-    IFID_PR.logic[STALL] = 0x0;
-    IFID_PR.logic[FLUSH] = 0x0;
     IFID_PR.logic[PCPLUS4] = 0x0;
     
     IDEX_PR.ctrl[MEMTOREG] = 0x0;
@@ -117,8 +115,6 @@ void init(){
     MEMWB_PR.logic[RFWRITEREG] = 0x0;
     MEMWB_PR.logic[MEMREADDATA] = 0x0;
     
-    IFID_BUFF.logic[STALL] = 0x0;
-    IFID_BUFF.logic[FLUSH] = 0x0;
     IFID_BUFF.logic[PCPLUS4] = 0x0;
     
     IDEX_BUFF.ctrl[MEMTOREG] = 0x0;
@@ -314,6 +310,12 @@ void IF(){
         else{
             PC = IFID_PR.logic[PCPLUS4];
         }
+        
+        // Get the instruction for PC address
+        IFID_BUFF.instr = decode(PC);
+        
+        // PCPLUS4 to buffer
+        IFID_BUFF.logic[PCPLUS4] = PC + 4;
         
     }
     else if (HAZ.flush){
