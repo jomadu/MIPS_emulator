@@ -12,6 +12,6 @@ MEMWB_PR::MEMWB_PR(){
     regWrite = false;
     memToReg = false;
     memReadData = 0x0;
-    memBypass = 0x0;
+    memBypassData = 0x0;
     regFileWriteReg = 0x0;
 }

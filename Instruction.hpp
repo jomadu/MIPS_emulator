@@ -10,6 +10,9 @@
 #define Instruction_hpp
 
 #include <stdio.h>
+#include <iostream>
+
+using namespace std;
 
 class Instruction{
 public:
@@ -21,6 +24,7 @@ public:
     unsigned int funct;
     int immed;
     unsigned int addr;
+    string type;
 public:
     Instruction();
 };

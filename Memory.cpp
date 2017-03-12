@@ -17,10 +17,10 @@ Memory::Memory(){
     memStart = INIT_MEMSTART;
 }
 
-Memory::Memory(char * iFile){
+Memory::Memory(char * iFile, unsigned int &pc){
     mem = new unsigned int [MEMSIZE/4];
     memStart = INIT_MEMSTART;
-    importFile(iFile);
+    importFile(iFile, pc);
 }
 
 unsigned int Memory::fetchInstr(unsigned int addr){
@@ -55,7 +55,7 @@ int Memory::addr2idx(unsigned int addr){
     return (addr - memStart)/4;
 }
 
-void Memory::importFile(char * iFile){
+void Memory::importFile(char * iFile, unsigned int &pc){
     char buffer[80];
     char cAddr[80];
     char cData[80];
@@ -96,9 +96,10 @@ void Memory::importFile(char * iFile){
             
             if(i == 0){
                 memStart = iAddr;
+                pc = iAddr;
             }
             
-            storeData(iData, iAddr);
+            storeInstr(iData, iAddr);
             
             printf("%d: %s",i++,buffer);
         }

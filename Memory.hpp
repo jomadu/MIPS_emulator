@@ -22,13 +22,13 @@ public:
     unsigned int memStart;
 public:
     Memory();
-    Memory(char * iFile);
+    Memory(char * iFile, unsigned int &pc);
     unsigned int fetchInstr(unsigned int addr);
     void storeInstr(unsigned int mc, unsigned int addr);
     unsigned int loadData(unsigned int addr);
     void storeData(unsigned int data, unsigned int addr);
     int addr2idx(unsigned int addr);
-    void importFile(char * iFile);
+    void importFile(char * iFile, unsigned int &pc);
 };
 
 #endif /* Memory_hpp */

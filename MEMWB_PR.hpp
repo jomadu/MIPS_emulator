@@ -18,7 +18,7 @@ public:
     bool regWrite;
     bool memToReg;
     unsigned int memReadData;
-    unsigned int memBypass;
+    unsigned int memBypassData;
     unsigned int regFileWriteReg;
 public:
     MEMWB_PR();
