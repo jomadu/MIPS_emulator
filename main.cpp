@@ -20,6 +20,8 @@ bool debug = true;
 #define LW  "LW"
 #define SW  "SW"
 #define BEQ "BEQ"
+#define J   "J"
+#define I   "I"
 #define MEMORYFILENAME "memory.txt"
 
 // Memory
@@ -73,45 +75,30 @@ Instruction decode(unsigned int mc){
     myInstr.rs = (mc & rsMask) >> rsShift;
     myInstr.rt = (mc & rtMask) >> rtShift;
     myInstr.rd = (mc & rdMask) >> rdShift;
-    myInstr.shamt = (mc & shamtMask) >> shamtMask;
+    myInstr.shamt = (mc & shamtMask) >> shamtShift;
     myInstr.funct = (mc & functMask);
     myInstr.immed = (mc & immedMask);
     myInstr.addr = (mc & addrMask);
     
+    //TODO: convert this to a switch case
+    
     if (myInstr.opcode == 0x0){
         myInstr.type = R;
     }
-    else if (myInstr.funct == 0x23){
+    else if (myInstr.opcode == 0x23){
         myInstr.type = LW;
     }
-    else if (myInstr.funct == 0x2B){
+    else if (myInstr.opcode == 0x2B){
         myInstr.type = SW;
     }
-    else if (myInstr.funct == 0x4){
+    else if (myInstr.opcode == 0x4){
         myInstr.type = BEQ;
     }
-    
-    if (debug){
-        printf("Decoding...\n");
-        printf("MC: 0x%X\n", mc);
-        printf("Instruction:\n"
-               "------------\n"
-               "opcode:\t0x%X\n"
-               "rs:\t\t0x%X\n"
-               "rt:\t\t0x%X\n"
-               "rd:\t\t0x%X\n"
-               "shamt:\t0x%X\n"
-               "funct:\t0x%X\n"
-               "immed:\t0x%X\n"
-               "addr:\t\t0x%X\n",
-               myInstr.opcode,
-               myInstr.rs,
-               myInstr.rt,
-               myInstr.rd,
-               myInstr.shamt,
-               myInstr.funct,
-               myInstr.immed,
-               myInstr.addr);
+    else if (myInstr.opcode == 0x2){
+        myInstr.type = J;
+    }
+    else{
+        myInstr.type = I;
     }
     
     return myInstr;
@@ -205,8 +192,23 @@ void ID(){
         idex_buff.regWrite = false;
         idex_buff.memToReg = false;
     }
+    else if (!ifid.instr.type.compare(J)){
+        //TODO: Implement Jump control lines
+    }
+    else if (!ifid.instr.type.compare(I)){
+        //TODO: Implement I-type control lines
+        idex_buff.regDst = false;
+        idex_buff.ALUOp0 = false;
+        idex_buff.ALUOp1 = true;
+        idex_buff.ALUSrc = true;
+        idex_buff.branch = false;
+        idex_buff.memRead = false;
+        idex_buff.memWrite = false;
+        idex_buff.regWrite = true;
+        idex_buff.memToReg = false;
+    }
     else{
-        perror("Unable to derive constrol lines from instruction.");
+        perror("Unable to derive constrol lines from instruction.\n");
     }
 
     idex_buff.regFileReadData1 = regFile.readReg(ifid.instr.rs);
@@ -222,9 +224,14 @@ void ID(){
 }
 
 void EX(){
+    unsigned int ALUInput1U;
+    unsigned int ALUInput2U;
     unsigned int ALUInput1;
     unsigned int ALUInput2;
     unsigned int ALUControl;
+    bool unsignedFlag = false;
+    unsigned int shamt;
+    unsigned int shamtMask = 0x3E0;
     
     exmem_buff.regWrite = idex.regWrite;
     exmem_buff.memToReg = idex.memToReg;
@@ -234,43 +241,151 @@ void EX(){
     
     exmem_buff.branchTarget = idex.pcplus4 + (idex.signExtend + 4);
     
-    ALUInput1 = idex.regFileReadData1;
+    ALUInput1U = idex.regFileReadData1;
+    ALUInput1 = (int) ALUInput1U;
     
     if (idex.ALUSrc){
-        ALUInput2 = idex.signExtend;
+        ALUInput2U = idex.signExtend;
+        ALUInput2 = (int) ALUInput2U;
+
     }
     else{
-        ALUInput2 = idex.regFileReadData2;
+        ALUInput2U = idex.regFileReadData2;
+        ALUInput2 = (int) ALUInput2U;
     }
     
     exmem_buff.ALUCompare = (ALUInput1 == ALUInput2);
     
+    // ALUControl Lines
+    // and: 0x0 = 0b000000
+    // or : 0x1 = 0b000001
+    // add: 0x2 = 0b000010
+    // srl: 0x3 = 0b000011
+    // sll: 0x4 = 0b000100
+    // ?  : 0x5 = 0b000101 - for now it will be for div
+    // sub: 0x6 = 0b000110
+    // slt: 0x7 = 0b000111
+    // ?  : 0x8 = 0b001000 - for now it will be for mult
+    // ?  : 0x9 = 0b001001
+    // ?  : 0xA = 0b001010
+    // ?  : 0xB = 0b001011
+    // nor: 0xC = 0b001100
+    // ?  : 0xD = 0b001101
+    // ?  : 0xE = 0b001110
+    // ?  : 0xF = 0b001111
+    // .
+    // .
+    // .
+    
+    
     if (idex.ALUOp1 && !idex.ALUOp0){
-        switch(idex.instr.funct){
-            case 0x20:
-                ALUControl = 0x2;
-                break;
-            case 0x22:
-                ALUControl = 0x6;
-                break;
-            case 0x24:
-                ALUControl = 0x0;
-                break;
-            case 0x25:
-                ALUControl = 0x1;
-                break;
-            case 0x2A:
-                ALUControl = 0x7;
-                break;
-            default:
-                break;
+        // R-type or I-Type instructions
+        // R-type
+        if (idex.instr.opcode == 0x0){
+            switch(idex.instr.funct){
+                //goes in order of green cheat sheet
+                case 0x20:
+                    //add
+                    ALUControl = 0x2;
+                    break;
+                case 0x24:
+                    //and
+                    ALUControl = 0x0;
+                    break;
+                case 0x27:
+                    //nor
+                    ALUControl = 0xC;
+                    break;
+                case 0x25:
+                    //or
+                    ALUControl = 0x1;
+                    break;
+                case 0x2A:
+                    //slt
+                    ALUControl = 0x7;
+                    break;
+                case 0x2B:
+                    //sltu
+                    unsignedFlag = true;
+                    ALUControl = 0x7;
+                    break;
+                case 0x0:
+                    //sll
+                    ALUControl = 0x4;
+                    break;
+                case 0x2:
+                    //srl
+                    ALUControl = 0x3;
+                    break;
+                case 0x22:
+                    //sub
+                    ALUControl = 0x6;
+                case 0x23:
+                    //subu
+                    unsignedFlag = true;
+                    ALUControl = 0x6;
+                    break;
+                case 0x1A:
+                    //div
+                    ALUControl = 0x5;
+                    break;
+                case 0x1B:
+                    //divu
+                    unsignedFlag = true;
+                    ALUControl = 0x5;
+                    break;
+                case 0x18:
+                    //mult
+                    ALUControl = 0x8;
+                case 0x19:
+                    //multu
+                    unsignedFlag = true;
+                    ALUControl = 0x8;
+                    break;
+                default:
+                    break;
+            }
+        }
+        else{
+            switch(idex.instr.opcode){
+                case 0x8:
+                    //addi
+                    ALUControl = 0x2;
+                    break;
+                case 0x9:
+                    //addiu
+                    unsignedFlag = true;
+                    ALUControl = 0x2;
+                    break;
+                case 0xC:
+                    //andi
+                    ALUControl = 0x0;
+                    break;
+                case 0xD:
+                    //ori
+                    ALUControl = 0x1;
+                    break;
+                case 0xA:
+                    //slti
+                    ALUControl = 0x7;
+                    break;
+                case 0xB:
+                    //sltiu
+                    unsignedFlag = true;
+                    ALUControl = 0x7;
+                    break;
+                default:
+                    break;
+            }
         }
         
     }
     else if (!idex.ALUOp1 && !idex.ALUOp0){
+        // LW and SW instructions
         ALUControl = 0x2;
     }
     else if (!idex.ALUOp1 && idex.ALUOp0){
+        // BEQ instructions
         ALUControl = 0x6;
     }
     
@@ -285,12 +400,43 @@ void EX(){
             break;
         case 0x2:
             // ADD
-            exmem_buff.ALUResult = ALUInput1 + ALUInput2;
+            if (unsignedFlag){
+                exmem_buff.ALUResult = ALUInput1U + ALUInput2U;
+            }
+            else{
+                exmem_buff.ALUResult = ALUInput1 + ALUInput2;
+            }
+            break;
+        case 0x3:
+            // SRL
+            // TODO: May need to consider signed/unsigned int
+            shamt = (idex.signExtend & shamtMask) >> 6;
+            exmem_buff.ALUResult = ALUInput2 >> shamt;
+            break;
+        case 0x4:
+            // SLL
+            // TODO: May need to consider signed/unsigned int
+            shamt = (idex.signExtend & shamtMask) >> 6;
+            exmem_buff.ALUResult = ALUInput2 << shamt;
+            break;
+        case 0x5:
+            // DIV
+            if (unsignedFlag){
+                exmem_buff.ALUResult = ALUInput1U / ALUInput2U;
+            }
+            else{
+                exmem_buff.ALUResult = ALUInput1 / ALUInput2;
+            }
             break;
         case 0x6:
             // SUB
-            // TODO: Does the order of input matter for the ALU Sub?
-            exmem_buff.ALUResult = ALUInput1 - ALUInput2;
+            if (unsignedFlag){
+                exmem_buff.ALUResult = ALUInput1U - ALUInput2U;
+            }
+            else{
+                exmem_buff.ALUResult = ALUInput1 - ALUInput2;
+            }
+            break;
         case 0x7:
             // SLT
             if (ALUInput1 < ALUInput2){
@@ -299,8 +445,22 @@ void EX(){
             else{
                 exmem_buff.ALUResult = 0x0;
             }
+            break;
+        case 0x8:
+            // MULT
+            if (unsignedFlag){
+                exmem_buff.ALUResult = ALUInput1U * ALUInput2U;
+            }
+            else{
+                exmem_buff.ALUResult = ALUInput1 * ALUInput2;
+            }
+            break;
+        case 0xC:
+            // Bitwise NOR
+            exmem_buff.ALUResult = ~(ALUInput1 | ALUInput2);
+            break;
         default:
-            perror("Unknown ALU Controls");
+            perror("Unknown ALU Controls\n");
             break;
     }
     
@@ -327,7 +487,7 @@ void MEM(){
         memory.storeData(exmem.memWriteData, exmem.ALUResult);
     }
     else if (exmem.memRead && exmem.memWrite){
-        perror("memRead and memWrite control lines both high.");
+        perror("memRead and memWrite control lines both high.\n");
     }
     memwb_buff.memBypassData = exmem.ALUResult;
     memwb_buff.regFileWriteReg = exmem.regFileWriteReg;
@@ -340,6 +500,13 @@ void executeClockCycle(){
     EX();
     MEM();
     loadPR();
+    if (debug){
+        ifid.print();
+        idex.print();
+        exmem.print();
+        memwb.print();
+        regFile.print();
+    }
 }
 
 void startup(){
@@ -349,6 +516,13 @@ void startup(){
 }
 int main(int argc, const char * argv[]) {
     startup();
+    executeClockCycle();
+    executeClockCycle();
+    executeClockCycle();
+    executeClockCycle();
+    executeClockCycle();
+    executeClockCycle();
+    executeClockCycle();
     executeClockCycle();
     executeClockCycle();
     executeClockCycle();

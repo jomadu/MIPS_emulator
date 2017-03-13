@@ -20,3 +20,29 @@ EXMEM_PR::EXMEM_PR(){
     memWriteData = 0x0;
     regFileWriteReg = 0x0;
 }
+
+void EXMEM_PR::print(){
+    printf("------------------------\n"
+           "EXMEM Pipeline Register\n"
+           "------------------------\n"
+           "regWrite:\t\t\t%s\n"
+           "memToReg:\t\t\t%s\n"
+           "branch:\t\t\t\t%s\n"
+           "memWrite:\t\t\t%s\n"
+           "memRead:\t\t\t%s\n"
+           "branchTarget:\t\t0x%X\n"
+           "ALUCompare:\t\t\t%s\n"
+           "ALUResult:\t\t\t0x%X\n"
+           "memWriteData:\t\t0x%X\n"
+           "regFileWriteReg:\t0x%X\n\n",
+           regWrite ? "true":"false",
+           memToReg ? "true":"false",
+           branch ? "true":"false",
+           memWrite ? "true":"false",
+           memRead ? "true":"false",
+           branchTarget,
+           ALUCompare ? "true":"false",
+           ALUResult,
+           memWriteData,
+           regFileWriteReg);
+}

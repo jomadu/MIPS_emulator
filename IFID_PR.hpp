@@ -18,6 +18,7 @@ public:
     Instruction instr;
 public:
     IFID_PR();
+    void print();
 };
 
 #endif /* IFID_PR_hpp */

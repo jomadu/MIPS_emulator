@@ -30,6 +30,7 @@ public:
     unsigned int signExtend;
 public:
     IDEX_PR();
+    void print();
 };
 
 #endif /* IDEX_PR_hpp */

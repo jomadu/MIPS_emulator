@@ -14,7 +14,6 @@
 
 class MEMWB_PR{
 public:
-    Instruction instr;
     bool regWrite;
     bool memToReg;
     unsigned int memReadData;
@@ -22,6 +21,7 @@ public:
     unsigned int regFileWriteReg;
 public:
     MEMWB_PR();
+    void print();
 };
 
 #endif /* MEMWB_PR_hpp */

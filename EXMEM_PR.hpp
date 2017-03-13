@@ -14,7 +14,6 @@
 
 class EXMEM_PR{
 public:
-    Instruction instr;
     bool regWrite;
     bool memToReg;
     bool branch;
@@ -27,6 +26,7 @@ public:
     unsigned int regFileWriteReg;
 public:
     EXMEM_PR();
+    void print();
 };
 
 #endif /* EXMEM_PR_hpp */
