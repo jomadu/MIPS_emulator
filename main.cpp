@@ -80,25 +80,26 @@ Instruction decode(unsigned int mc){
     myInstr.immed = (mc & immedMask);
     myInstr.addr = (mc & addrMask);
     
-    //TODO: convert this to a switch case
-    
-    if (myInstr.opcode == 0x0){
-        myInstr.type = R;
-    }
-    else if (myInstr.opcode == 0x23){
-        myInstr.type = LW;
-    }
-    else if (myInstr.opcode == 0x2B){
-        myInstr.type = SW;
-    }
-    else if (myInstr.opcode == 0x4){
-        myInstr.type = BEQ;
-    }
-    else if (myInstr.opcode == 0x2){
-        myInstr.type = J;
-    }
-    else{
-        myInstr.type = I;
+    // Note: These cases aren't bulletproof
+    switch (myInstr.opcode) {
+        case 0x0:
+            myInstr.type = R;
+            break;
+        case 0x23:
+            myInstr.type = LW;
+            break;
+        case 0x2B:
+            myInstr.type = SW;
+            break;
+        case 0x4:
+            myInstr.type = BEQ;
+            break;
+        case 0x2:
+            myInstr.type = LW;
+            break;
+        default:
+            myInstr.type = I;
+            break;
     }
     
     return myInstr;
@@ -196,7 +197,6 @@ void ID(){
         //TODO: Implement Jump control lines
     }
     else if (!ifid.instr.type.compare(I)){
-        //TODO: Implement I-type control lines
         idex_buff.regDst = false;
         idex_buff.ALUOp0 = false;
         idex_buff.ALUOp1 = true;
@@ -226,8 +226,8 @@ void ID(){
 void EX(){
     unsigned int ALUInput1U;
     unsigned int ALUInput2U;
-    unsigned int ALUInput1;
-    unsigned int ALUInput2;
+    int ALUInput1;
+    int ALUInput2;
     unsigned int ALUControl;
     bool unsignedFlag = false;
     unsigned int shamt;
@@ -420,7 +420,7 @@ void EX(){
             exmem_buff.ALUResult = ALUInput2 << shamt;
             break;
         case 0x5:
-            // DIV
+            // DIV - Apparently we don't have to implement DIV?
             if (unsignedFlag){
                 exmem_buff.ALUResult = ALUInput1U / ALUInput2U;
             }
@@ -439,15 +439,26 @@ void EX(){
             break;
         case 0x7:
             // SLT
-            if (ALUInput1 < ALUInput2){
-                exmem_buff.ALUResult = 0x1;
+            if (unsignedFlag){
+                if (ALUInput1U < ALUInput2U){
+                    exmem_buff.ALUResult = 0x1;
+                }
+                else{
+                    exmem_buff.ALUResult = 0x0;
+                }
             }
             else{
-                exmem_buff.ALUResult = 0x0;
+                if (ALUInput1 < ALUInput2){
+                    exmem_buff.ALUResult = 0x1;
+                }
+                else{
+                    exmem_buff.ALUResult = 0x0;
+                }
             }
+            
             break;
         case 0x8:
-            // MULT
+            // MULT - Apparently we don't have to implement MULT?
             if (unsignedFlag){
                 exmem_buff.ALUResult = ALUInput1U * ALUInput2U;
             }
@@ -516,18 +527,28 @@ void startup(){
 }
 int main(int argc, const char * argv[]) {
     startup();
-    executeClockCycle();
-    executeClockCycle();
-    executeClockCycle();
-    executeClockCycle();
-    executeClockCycle();
-    executeClockCycle();
-    executeClockCycle();
-    executeClockCycle();
-    executeClockCycle();
-    executeClockCycle();
-    executeClockCycle();
-    executeClockCycle();
+                         // Instruction 1&4     | Instruction 2&5   | Instruction 3&6
+    executeClockCycle(); // IF()                |                   |
+    executeClockCycle(); // ID()                |                   |
+    executeClockCycle(); // EX()                |                   |
+    executeClockCycle(); // MEM()               | IF()              |
+    executeClockCycle(); // WB()                | ID()              |
+    executeClockCycle(); //                     | EX()              |
+    executeClockCycle(); //                     | MEM()             | IF()
+    executeClockCycle(); //                     | WB()              | ID()
+    executeClockCycle(); //                     |                   | EX()
+    executeClockCycle(); // IF()                |                   | MEM()
+    executeClockCycle(); // ID()                |                   | WB()
+    executeClockCycle(); // EX()                |                   |
+    executeClockCycle(); // MEM()               | IF()              |
+    executeClockCycle(); // WB()                | ID()              |
+    executeClockCycle(); //                     | EX()              |
+    executeClockCycle(); //                     | MEM()             | IF()
+    executeClockCycle(); //                     | WB()              | ID()
+    executeClockCycle(); //                     |                   | EX()
+    executeClockCycle(); //                     |                   | MEM()
+    executeClockCycle(); //                     |                   | WB()
+
     return 0;
 }
 

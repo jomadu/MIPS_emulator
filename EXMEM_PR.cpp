@@ -17,6 +17,7 @@ EXMEM_PR::EXMEM_PR(){
     branchTarget = 0x0;
     ALUCompare = false;
     ALUResult = 0x0;
+    ALUResultU = 0x0;
     memWriteData = 0x0;
     regFileWriteReg = 0x0;
 }

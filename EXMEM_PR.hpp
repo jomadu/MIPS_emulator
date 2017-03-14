@@ -21,7 +21,8 @@ public:
     bool memRead;
     unsigned int branchTarget;
     bool ALUCompare;
-    unsigned int ALUResult;
+    int ALUResult;
+    unsigned int ALUResultU;
     unsigned int memWriteData;
     unsigned int regFileWriteReg;
 public:

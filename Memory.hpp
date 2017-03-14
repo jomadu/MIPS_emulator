@@ -20,6 +20,7 @@ class Memory{
 public:
     unsigned int * mem;
     unsigned int memStart;
+    unsigned int instrEnd;
 public:
     Memory();
     Memory(char * iFile, unsigned int &pc);
@@ -29,6 +30,8 @@ public:
     void storeData(unsigned int data, unsigned int addr);
     int addr2idx(unsigned int addr);
     void importFile(char * iFile, unsigned int &pc);
+    void printInstr(unsigned int startAddr, unsigned int size);
+    void printData(unsigned int startAddr, unsigned int size);
 };
 
 #endif /* Memory_hpp */
