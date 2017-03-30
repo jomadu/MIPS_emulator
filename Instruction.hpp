@@ -27,6 +27,7 @@ public:
     string type;
 public:
     Instruction();
+    void toNOP();
     void print();
 };
 

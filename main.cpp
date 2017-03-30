@@ -51,9 +51,6 @@ ForwardingUnit forwardingUnit;
 RegisterFile regFile;
 
 Instruction decode(unsigned int mc){
-    //  MCDecode(MC)
-    //  Input -> MC in 8 digit HEX int
-    //  Returns -> Instruction Object
     Instruction myInstr;
     
     unsigned int opcodeMask = 0xFC000000;
@@ -80,7 +77,6 @@ Instruction decode(unsigned int mc){
     myInstr.immed = (mc & immedMask);
     myInstr.addr = (mc & addrMask);
     
-    // Note: These cases aren't bulletproof
     switch (myInstr.opcode) {
         case 0x0:
             myInstr.type = R;
@@ -105,6 +101,11 @@ Instruction decode(unsigned int mc){
     return myInstr;
 }
 
+void updateForwardingAndHazardUnits(){
+    forwardingUnit.update(idex, exmem, memwb);
+    hazardUnit.update(ifid, idex);
+}
+
 //  LoadPR
 void loadPR(){
     ifid = ifid_buff;
@@ -114,25 +115,46 @@ void loadPR(){
 }
 
 void IF(){
-    // Must deal with Stall, Flush, from Hazard Control Unit (see logic file)
     bool PCSrc;
+    bool regFileReadDataCompare;
+    bool branchInstrInID;
+    unsigned int branchTarget;
     
-    //Nominal Operation
-    PCSrc = exmem.branch && exmem.ALUCompare;
-    
-    if (PCSrc){
-        PC = exmem.branchTarget;
+    //Computing Branch Target and Branch indicator (PCSrc)
+    if (ifid.instr.immed >= 0x8000){
+        branchTarget = ((ifid.instr.immed + 0xFFFF0000) << 2) + ifid.pcnext;
     }
     else{
-        PC = ifid.pcplus4;
+        branchTarget = ((ifid.instr.immed) << 2) + ifid.pcnext;
     }
     
-    // Get the instruction for PC address
+    // Is the branch in ID taken? (PCSrc = true (taken), false (not-taken))
+    regFileReadDataCompare = (regFile.readReg(ifid.instr.rs) == regFile.readReg(ifid.instr.rt));
+    branchInstrInID = !ifid.instr.type.compare(BEQ);
+    PCSrc = (branchInstrInID && regFileReadDataCompare);
+    
+    // PC input Mux
+    if (PCSrc){
+        // Branch in ID taken. Next PC is the branch target
+        PC = branchTarget;
+    }
+    else{
+        PC = ifid.pcnext;
+    }
+    
+    // Fetch next instruction from PC address
     ifid_buff.instr = decode(memory.fetchInstr(PC));
     
-    // PCPLUS4 to buffer
-    ifid_buff.pcplus4 = PC + 4;
-    
+    // pcnext to buffer
+    if (!hazardUnit.stall){
+        // Nominal operation
+        ifid_buff.pcnext = PC + 4;
+    }
+    else{
+        // Load-use hazard - insert a bubble (NOP)
+        ifid_buff.pcnext = PC;
+        ifid_buff.instr.toNOP();
+    }
 }
 
 void WB(){
@@ -208,12 +230,12 @@ void ID(){
         idex_buff.memToReg = false;
     }
     else{
-        perror("Unable to derive constrol lines from instruction.\n");
+        perror("Unable to derive control lines from instruction.\n");
     }
 
     idex_buff.regFileReadData1 = regFile.readReg(ifid.instr.rs);
     idex_buff.regFileReadData2 = regFile.readReg(ifid.instr.rt);
-    idex_buff.pcplus4 = ifid.pcplus4;
+    idex_buff.pcnext = ifid.pcnext;
     
     if (ifid.instr.immed >= 0x8000){
         idex_buff.signExtend = ifid.instr.immed + 0xFFFF0000;
@@ -228,6 +250,8 @@ void EX(){
     unsigned int ALUInput2U;
     int ALUInput1;
     int ALUInput2;
+    unsigned int ALUInput1ForwardingMux;
+    unsigned int ALUInput2ForwardingMux;
     unsigned int ALUControl;
     bool unsignedFlag = false;
     unsigned int shamt;
@@ -239,10 +263,59 @@ void EX(){
     exmem_buff.memRead = idex.memRead;
     exmem_buff.memWrite = idex.memWrite;
     
-    exmem_buff.branchTarget = idex.pcplus4 + (idex.signExtend + 4);
+    exmem_buff.branchTarget = idex.pcnext + (idex.signExtend + 4);
     
-    ALUInput1U = idex.regFileReadData1;
+    //ALUInput1 Forwarding Mux
+    switch (forwardingUnit.forwardA) {
+        case 0x0:
+            // No Forwarding needed
+            ALUInput1ForwardingMux = idex.regFileReadData1;
+            break;
+        case 0x1:
+            // Forwarding from memwb
+            if (memwb.memToReg){
+                ALUInput1ForwardingMux = memwb.memReadData;
+            }
+            else{
+                ALUInput1ForwardingMux = memwb.memBypassData;
+            }
+            break;
+        case 0x2:
+            // Forwarding from exmem
+            ALUInput1ForwardingMux = exmem.ALUResultU;
+            break;
+        default:
+            perror("ForwardA was a weird value.");
+            ALUInput1ForwardingMux = idex.regFileReadData1;
+            break;
+    }
+    ALUInput1U = ALUInput1ForwardingMux;
     ALUInput1 = (int) ALUInput1U;
+    
+    //ALUInput2 Forwarding Mux
+    switch (forwardingUnit.forwardB) {
+        case 0x0:
+            // No Forwarding needed
+            ALUInput2ForwardingMux = idex.regFileReadData2;
+            break;
+        case 0x1:
+            // Forwarding from memwb
+            if (memwb.memToReg){
+                ALUInput2ForwardingMux = memwb.memReadData;
+            }
+            else{
+                ALUInput2ForwardingMux = memwb.memBypassData;
+            }
+            break;
+        case 0x2:
+            // Forwarding from exmem
+            ALUInput2ForwardingMux = exmem.ALUResultU;
+            break;
+        default:
+            perror("ForwardB was a weird value.");
+            ALUInput2ForwardingMux = idex.regFileReadData2;
+            break;
+    }
     
     if (idex.ALUSrc){
         ALUInput2U = idex.signExtend;
@@ -250,12 +323,10 @@ void EX(){
 
     }
     else{
-        ALUInput2U = idex.regFileReadData2;
+        ALUInput2U = ALUInput2ForwardingMux;
         ALUInput2 = (int) ALUInput2U;
     }
-    
-    exmem_buff.ALUCompare = (ALUInput1 == ALUInput2);
-    
+        
     // ALUControl Lines
     // and: 0x0 = 0b000000
     // or : 0x1 = 0b000001
@@ -511,6 +582,7 @@ void executeClockCycle(){
     EX();
     MEM();
     loadPR();
+    updateForwardingAndHazardUnits();
     if (debug){
         ifid.print();
         idex.print();
@@ -523,7 +595,7 @@ void executeClockCycle(){
 void startup(){
     char file [] = MEMORYFILENAME;
     memory.importFile(file, PC);
-    ifid.pcplus4 = PC;
+    ifid.pcnext = PC;  
 }
 int main(int argc, const char * argv[]) {
     startup();

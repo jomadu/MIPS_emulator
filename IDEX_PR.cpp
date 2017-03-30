@@ -20,7 +20,7 @@ IDEX_PR::IDEX_PR(){
     ALUOp1 = false;
     ALUOp0 = false;
     ALUSrc = false;
-    pcplus4 = 0x0;
+    pcnext = 0x0;
     regFileReadData1 = 0x0;
     regFileReadData2 = 0x0;
     signExtend = 0x0;
@@ -55,7 +55,7 @@ void IDEX_PR::print(){
            ALUOp1 ? "true":"false",
            ALUOp0 ? "true":"false",
            ALUSrc ? "true":"false",
-           pcplus4,
+           pcnext,
            regFileReadData1,
            regFileReadData2);
 }

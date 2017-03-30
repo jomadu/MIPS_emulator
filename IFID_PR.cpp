@@ -9,7 +9,7 @@
 #include "IFID_PR.hpp"
 
 IFID_PR::IFID_PR(){
-    pcplus4 = 0x0;
+    pcnext = 0x0;
 };
 
 void IFID_PR::print(){
@@ -19,5 +19,5 @@ void IFID_PR::print(){
     instr.print();
     printf("\nOther\n"
            "------------\n");
-    printf("PC + 4:\t\t\t\t0x%X\n\n", pcplus4);
+    printf("PC + 4:\t\t\t\t0x%X\n\n", pcnext);
 }

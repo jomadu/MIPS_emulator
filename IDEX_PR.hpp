@@ -24,7 +24,7 @@ public:
     bool ALUOp1;
     bool ALUOp0;
     bool ALUSrc;
-    unsigned int pcplus4;
+    unsigned int pcnext;
     unsigned int regFileReadData1;
     unsigned int regFileReadData2;
     unsigned int signExtend;

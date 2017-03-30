@@ -18,6 +18,8 @@ ForwardingUnit::ForwardingUnit(){
 
 void ForwardingUnit::update(IDEX_PR idex_pr, EXMEM_PR exmem_pr, MEMWB_PR memwb_pr){
     // Note: May be a case where mem hazard forwarding overwrites an exection hazard forwarding code
+    forwardA = 0x0;
+    forwardB = 0x0;
     
     // Execution Hazard Forwarding Detection
     if ((exmem_pr.regWrite) && (exmem_pr.regFileWriteReg != 0) && (exmem_pr.regFileWriteReg == idex_pr.instr.rs)){

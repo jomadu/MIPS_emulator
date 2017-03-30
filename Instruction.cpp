@@ -21,6 +21,16 @@ Instruction::Instruction(){
     immed = 0x0;
     addr = 0x0;
 }
+void Instruction::toNOP(){
+    opcode = 0x0;
+    rs = 0x0;
+    rt = 0x0;
+    rd = 0x0;
+    shamt = 0x0;
+    funct = 0x0;
+    immed = 0x0;
+    addr = 0x0;
+}
 void Instruction::print(){
     printf("\nInstruction:\n"
            "------------\n"
@@ -43,6 +53,7 @@ void Instruction::print(){
            addr,
            type.c_str());
 }
+
 
 
 
