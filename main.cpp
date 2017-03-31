@@ -102,11 +102,6 @@ Instruction decode(unsigned int mc){
     return myInstr;
 }
 
-void updateForwardingAndHazardUnits(){
-    forwardingUnit.update(idex, exmem, memwb);
-    hazardUnit.update(ifid, idex);
-}
-
 //  LoadPR
 void loadPR(){
     ifid = ifid_buff;
