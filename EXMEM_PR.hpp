@@ -20,7 +20,6 @@ public:
     bool branch;
     bool memWrite;
     bool memRead;
-    unsigned int branchTarget;
     bool ALUCompare;
     unsigned int ALUResult;
     unsigned int memWriteData;

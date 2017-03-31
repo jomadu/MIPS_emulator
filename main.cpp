@@ -231,9 +231,7 @@ void EX(){
     exmem_buff.branch = idex.branch;
     exmem_buff.memRead = idex.memRead;
     exmem_buff.memWrite = idex.memWrite;
-    
-    exmem_buff.branchTarget = idex.pcplus4 + (idex.signExtend + 4);
-    
+        
     ALUInput1 = idex.regFileReadData1;
     
     if (idex.ALUSrc){
