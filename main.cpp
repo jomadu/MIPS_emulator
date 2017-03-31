@@ -266,6 +266,69 @@ void EX(){
     
     forwardingUnit.update(idex, exmem, memwb);
     
+    // Determine ALUInputs
+    // ALUInput1 Forwarding Mux
+    switch (forwardingUnit.forwardA) {
+        case 0x0:
+            // No Forwarding needed
+            ALUInput1ForwardingMux = idex.regFileReadData1;
+            break;
+        case 0x1:
+            // Forwarding from memwb
+            if (memwb.memToReg){
+                ALUInput1ForwardingMux = memwb.memReadData;
+            }
+            else{
+                ALUInput1ForwardingMux = memwb.memBypassData;
+            }
+            break;
+        case 0x2:
+            // Forwarding from exmem
+            ALUInput1ForwardingMux = exmem.ALUResult;
+            break;
+        default:
+            perror("ForwardA was a weird value.");
+            ALUInput1ForwardingMux = idex.regFileReadData1;
+            break;
+    }
+    ALUInput1U = ALUInput1ForwardingMux;
+    ALUInput1 = (int) ALUInput1U;
+    
+    //ALUInput2 Forwarding Mux
+    switch (forwardingUnit.forwardB) {
+        case 0x0:
+            // No Forwarding needed
+            ALUInput2ForwardingMux = idex.regFileReadData2;
+            break;
+        case 0x1:
+            // Forwarding from memwb
+            if (memwb.memToReg){
+                ALUInput2ForwardingMux = memwb.memReadData;
+            }
+            else{
+                ALUInput2ForwardingMux = memwb.memBypassData;
+            }
+            break;
+        case 0x2:
+            // Forwarding from exmem
+            ALUInput2ForwardingMux = exmem.ALUResult;
+            break;
+        default:
+            perror("ForwardB was a weird value.");
+            ALUInput2ForwardingMux = idex.regFileReadData2;
+            break;
+    }
+    
+    if (idex.ALUSrc){
+        ALUInput2U = idex.signExtend;
+        ALUInput2 = (int) ALUInput2U;
+    }
+    else{
+        ALUInput2U = ALUInput2ForwardingMux;
+        ALUInput2 = (int) ALUInput2U;
+    }
+    
+    // Determine ALU Controls
     if (idex.ALUOp1 && !idex.ALUOp0){
         // R-type or I-Type instructions
         // R-type
@@ -377,68 +440,6 @@ void EX(){
         ALUControl = 0x6;
     }
     
-    // Determine ALUInputs
-    // ALUInput1 Forwarding Mux
-    switch (forwardingUnit.forwardA) {
-        case 0x0:
-            // No Forwarding needed
-            ALUInput1ForwardingMux = idex.regFileReadData1;
-            break;
-        case 0x1:
-            // Forwarding from memwb
-            if (memwb.memToReg){
-                ALUInput1ForwardingMux = memwb.memReadData;
-            }
-            else{
-                ALUInput1ForwardingMux = memwb.memBypassData;
-            }
-            break;
-        case 0x2:
-            // Forwarding from exmem
-            ALUInput1ForwardingMux = exmem.ALUResult;
-            break;
-        default:
-            perror("ForwardA was a weird value.");
-            ALUInput1ForwardingMux = idex.regFileReadData1;
-            break;
-    }
-    ALUInput1U = ALUInput1ForwardingMux;
-    ALUInput1 = (int) ALUInput1U;
-    
-    //ALUInput2 Forwarding Mux
-    switch (forwardingUnit.forwardB) {
-        case 0x0:
-            // No Forwarding needed
-            ALUInput2ForwardingMux = idex.regFileReadData2;
-            break;
-        case 0x1:
-            // Forwarding from memwb
-            if (memwb.memToReg){
-                ALUInput2ForwardingMux = memwb.memReadData;
-            }
-            else{
-                ALUInput2ForwardingMux = memwb.memBypassData;
-            }
-            break;
-        case 0x2:
-            // Forwarding from exmem
-            ALUInput2ForwardingMux = exmem.ALUResult;
-            break;
-        default:
-            perror("ForwardB was a weird value.");
-            ALUInput2ForwardingMux = idex.regFileReadData2;
-            break;
-    }
-    
-    if (idex.ALUSrc){
-        ALUInput2U = idex.signExtend;
-        ALUInput2 = (int) ALUInput2U;
-    }
-    else{
-        ALUInput2U = ALUInput2ForwardingMux;
-        ALUInput2 = (int) ALUInput2U;
-    }
-        
     // ALUControl Lines
     // and: 0x0 = 0b000000
     // or : 0x1 = 0b000001
@@ -546,7 +547,7 @@ void EX(){
             break;
     }
     
-    exmem_buff.memWriteData = idex.regFileReadData2;
+    exmem_buff.memWriteData = ALUInput2ForwardingMux;
     
     if (idex.regDst){
         exmem_buff.regFileWriteReg = idex.instr.rd;
