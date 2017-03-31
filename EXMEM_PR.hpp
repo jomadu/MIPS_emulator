@@ -21,7 +21,6 @@ public:
     bool memWrite;
     bool memRead;
     unsigned int ALUResult;
-    bool ALUResultUnsigned;
     unsigned int memWriteData;
     unsigned int regFileWriteReg;
 public:

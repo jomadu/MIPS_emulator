@@ -254,14 +254,13 @@ void EX(){
     unsigned int ALUControl;
     unsigned int shamt;
     unsigned int shamtMask = 0x3E0;
+    bool unsignedFlag = false;
     
     exmem_buff.regWrite = idex.regWrite;
     exmem_buff.memToReg = idex.memToReg;
     exmem_buff.branch = idex.branch;
     exmem_buff.memRead = idex.memRead;
     exmem_buff.memWrite = idex.memWrite;
-
-    exmem_buff.ALUResultUnsigned = false;
     
     exmem_buff.instr = idex.instr;
     
@@ -295,7 +294,7 @@ void EX(){
                     break;
                 case 0x2B:
                     //sltu
-                    exmem_buff.ALUResultUnsigned = true;
+                    unsignedFlag = true;
                     ALUControl = 0x7;
                     break;
                 case 0x0:
@@ -311,7 +310,7 @@ void EX(){
                     ALUControl = 0x6;
                 case 0x23:
                     //subu
-                    exmem_buff.ALUResultUnsigned = true;
+                    unsignedFlag = true;
                     ALUControl = 0x6;
                     break;
                 case 0x1A:
@@ -320,7 +319,7 @@ void EX(){
                     break;
                 case 0x1B:
                     //divu
-                    exmem_buff.ALUResultUnsigned = true;
+                    unsignedFlag = true;
                     ALUControl = 0x5;
                     break;
                 case 0x18:
@@ -328,7 +327,7 @@ void EX(){
                     ALUControl = 0x8;
                 case 0x19:
                     //multu
-                    exmem_buff.ALUResultUnsigned = true;
+                    unsignedFlag = true;
                     ALUControl = 0x8;
                     break;
                 default:
@@ -343,7 +342,7 @@ void EX(){
                     break;
                 case 0x9:
                     //addiu
-                    exmem_buff.ALUResultUnsigned = true;
+                    unsignedFlag = true;
                     ALUControl = 0x2;
                     break;
                 case 0xC:
@@ -360,7 +359,7 @@ void EX(){
                     break;
                 case 0xB:
                     //sltiu
-                    exmem_buff.ALUResultUnsigned = true;
+                    unsignedFlag = true;
                     ALUControl = 0x7;
                     break;
                 default:
@@ -472,7 +471,7 @@ void EX(){
             break;
         case 0x2:
             // ADD
-            if (exmem_buff.ALUResultUnsigned){
+            if (unsignedFlag){
                 exmem_buff.ALUResult = ALUInput1U + ALUInput2U;
             }
             else{
@@ -493,7 +492,7 @@ void EX(){
             break;
         case 0x5:
             // DIV - Apparently we don't have to implement DIV?
-            if (exmem_buff.ALUResultUnsigned){
+            if (unsignedFlag){
                 exmem_buff.ALUResult = ALUInput1U / ALUInput2U;
             }
             else{
@@ -502,7 +501,7 @@ void EX(){
             break;
         case 0x6:
             // SUB
-            if (exmem_buff.ALUResultUnsigned){
+            if (unsignedFlag){
                 exmem_buff.ALUResult = ALUInput1U - ALUInput2U;
             }
             else{
@@ -511,7 +510,7 @@ void EX(){
             break;
         case 0x7:
             // SLT
-            if (exmem_buff.ALUResultUnsigned){
+            if (unsignedFlag){
                 if (ALUInput1U < ALUInput2U){
                     exmem_buff.ALUResult = 0x1;
                 }
@@ -531,7 +530,7 @@ void EX(){
             break;
         case 0x8:
             // MULT - Apparently we don't have to implement MULT?
-            if (exmem_buff.ALUResultUnsigned){
+            if (unsignedFlag){
                 exmem_buff.ALUResult = ALUInput1U * ALUInput2U;
             }
             else{
@@ -560,7 +559,6 @@ void EX(){
 
 void MEM(){
     memwb_buff.instr = exmem.instr;
-    memwb_buff.dataUnsigned = exmem.ALUResultUnsigned;
     memwb_buff.regWrite = exmem.regWrite;
     memwb_buff.memToReg = exmem.memToReg;
     

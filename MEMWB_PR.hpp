@@ -17,11 +17,8 @@ public:
     Instruction instr;
     bool regWrite;
     bool memToReg;
-    bool dataUnsigned;
-    unsigned int memReadDataU;
-    int memReadData;
-    unsigned int memBypassDataU;
-    int memBypassData;
+    unsigned int memReadData;
+    unsigned int memBypassData;
     unsigned int regFileWriteReg;
 public:
     MEMWB_PR();
