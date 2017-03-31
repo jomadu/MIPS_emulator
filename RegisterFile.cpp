@@ -220,7 +220,7 @@ unsigned int RegisterFile::readReg(unsigned int regNum){
 
 void RegisterFile::print(){
     printf("------------------------\n"
-           "MEMWB Pipeline Register\n"
+           "Register File\n"
            "------------------------\n"
            "zero:\t\t\t0x%X\n"
            "at:\t\t\t0x%X\n"

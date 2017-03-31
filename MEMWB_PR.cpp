@@ -11,7 +11,10 @@
 MEMWB_PR::MEMWB_PR(){
     regWrite = false;
     memToReg = false;
+    dataUnsigned = false;
+    memReadDataU = 0x0;
     memReadData = 0x0;
+    memBypassDataU = 0x0;
     memBypassData = 0x0;
     regFileWriteReg = 0x0;
 }

@@ -14,10 +14,14 @@
 
 class MEMWB_PR{
 public:
+    Instruction instr;
     bool regWrite;
     bool memToReg;
-    unsigned int memReadData;
-    unsigned int memBypassData;
+    bool dataUnsigned;
+    unsigned int memReadDataU;
+    int memReadData;
+    unsigned int memBypassDataU;
+    int memBypassData;
     unsigned int regFileWriteReg;
 public:
     MEMWB_PR();

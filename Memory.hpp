@@ -13,25 +13,20 @@
 #include <iostream>
 using namespace std;
 
-#define INIT_MEMSTART 0
 #define MEMSIZE 5000
 
 class Memory{
 public:
     unsigned int * mem;
-    unsigned int memStart;
-    unsigned int instrEnd;
+
 public:
     Memory();
     Memory(char * iFile, unsigned int &pc);
-    unsigned int fetchInstr(unsigned int addr);
-    void storeInstr(unsigned int mc, unsigned int addr);
-    unsigned int loadData(unsigned int addr);
-    void storeData(unsigned int data, unsigned int addr);
+    unsigned int fetch(unsigned int addr);
+    void store(unsigned int mc, unsigned int addr);
     int addr2idx(unsigned int addr);
     void importFile(char * iFile, unsigned int &pc);
-    void printInstr(unsigned int startAddr, unsigned int size);
-    void printData(unsigned int startAddr, unsigned int size);
+    void print(unsigned int startAddr, unsigned int size);
 };
 
 #endif /* Memory_hpp */

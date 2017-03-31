@@ -25,15 +25,15 @@ void ForwardingUnit::update(IDEX_PR idex_pr, EXMEM_PR exmem_pr, MEMWB_PR memwb_p
     if ((exmem_pr.regWrite) && (exmem_pr.regFileWriteReg != 0) && (exmem_pr.regFileWriteReg == idex_pr.instr.rs)){
         forwardA = 0x2;
     }
-    else if ((exmem_pr.regWrite) && (exmem_pr.regFileWriteReg != 0) && (exmem_pr.regFileWriteReg == idex_pr.instr.rt)){
+    if ((exmem_pr.regWrite) && (exmem_pr.regFileWriteReg != 0) && (exmem_pr.regFileWriteReg == idex_pr.instr.rt)){
         forwardB = 0x2;
     }
     
     // Memory Hazard Forwarding Detection
-    if ((memwb_pr.regWrite) && (memwb_pr.regFileWriteReg != 0) && !((exmem_pr.regWrite) && (exmem_pr.regFileWriteReg != 0) && (exmem_pr.regFileWriteReg != idex_pr.instr.rs)) && (memwb_pr.regFileWriteReg == idex_pr.instr.rs)){
+    if ((memwb_pr.regWrite) && (memwb_pr.regFileWriteReg != 0) && (memwb_pr.regFileWriteReg == idex_pr.instr.rs)){
         forwardA = 0x1;
     }
-    else if ((memwb_pr.regWrite) && (memwb_pr.regFileWriteReg != 0) && !((exmem_pr.regWrite) && (exmem_pr.regFileWriteReg != 0) && (exmem_pr.regFileWriteReg != idex_pr.instr.rs)) && (memwb_pr.regFileWriteReg == idex_pr.instr.rs)){
-        forwardA = 0x1;
+    if ((memwb_pr.regWrite) && (memwb_pr.regFileWriteReg != 0) && (memwb_pr.regFileWriteReg == idex_pr.instr.rt)){
+        forwardB = 0x1;
     }
 }

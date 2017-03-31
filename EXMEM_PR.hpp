@@ -14,6 +14,7 @@
 
 class EXMEM_PR{
 public:
+    Instruction instr;
     bool regWrite;
     bool memToReg;
     bool branch;
@@ -21,8 +22,8 @@ public:
     bool memRead;
     unsigned int branchTarget;
     bool ALUCompare;
-    int ALUResult;
-    unsigned int ALUResultU;
+    unsigned int ALUResult;
+    bool ALUResultUnsigned;
     unsigned int memWriteData;
     unsigned int regFileWriteReg;
 public:

@@ -16,7 +16,7 @@ EXMEM_PR::EXMEM_PR(){
     memRead = false;
     branchTarget = 0x0;
     ALUResult = 0x0;
-    ALUResultU = 0x0;
+    ALUResultUnsigned = false;
     memWriteData = 0x0;
     regFileWriteReg = 0x0;
 }
