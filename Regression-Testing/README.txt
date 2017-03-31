@@ -1,0 +1,25 @@
+Things to test:
+addi
+addiu
+add
+and
+nor
+or
+slt
+sltu
+sll
+srl
+sub
+subu
+div
+divu
+mult
+multu
+addiu
+andi
+ori
+slti
+sltiu
+lw
+sw
+beq
