@@ -45,7 +45,8 @@ RegisterFile::RegisterFile(){
 void RegisterFile::writeReg(unsigned int regNum, unsigned int data){
     switch (regNum) {
         case 0:
-            perror("Cannot Write to r0 in RegisterFile");
+            //Cannot write to register zero
+            break;
         case 1:
             at = data;
             break;
@@ -140,7 +141,7 @@ void RegisterFile::writeReg(unsigned int regNum, unsigned int data){
             ra = data;
             break;
         default:
-            perror("Could not write to RegisterFile (idx out of bounds)");
+            perror("Could not write to RegisterFile (idx out of bounds)\n");
     }
 }
 
@@ -212,8 +213,49 @@ unsigned int RegisterFile::readReg(unsigned int regNum){
         case 31:
             return ra;
         default:
-            perror("Could not read from RegisterFile (idx out of bounds)");
+            perror("Could not read from RegisterFile (idx out of bounds)\n");
     }
     return 0;
+}
+
+void RegisterFile::print(){
+    printf("------------------------\n"
+           "Register File\n"
+           "------------------------\n"
+           "zero:\t\t\t0x%X\n"
+           "at:\t\t\t0x%X\n"
+           "v0:\t\t\t0x%X\n"
+           "v1:\t\t\t0x%X\n"
+           "a0:\t\t\t0x%X\n"
+           "a1:\t\t\t0x%X\n"
+           "a2:\t\t\t0x%X\n"
+           "a3:\t\t\t0x%X\n"
+           "t0:\t\t\t0x%X\n"
+           "t1:\t\t\t0x%X\n"
+           "t2:\t\t\t0x%X\n"
+           "t3:\t\t\t0x%X\n"
+           "t4:\t\t\t0x%X\n"
+           "t5:\t\t\t0x%X\n"
+           "t6:\t\t\t0x%X\n"
+           "t7:\t\t\t0x%X\n"
+           "t8:\t\t\t0x%X\n"
+           "t9:\t\t\t0x%X\n"
+           "s0:\t\t\t0x%X\n"
+           "s1:\t\t\t0x%X\n"
+           "s2:\t\t\t0x%X\n"
+           "s3:\t\t\t0x%X\n"
+           "s4:\t\t\t0x%X\n"
+           "s5:\t\t\t0x%X\n"
+           "s6:\t\t\t0x%X\n"
+           "s7:\t\t\t0x%X\n"
+           "k0:\t\t\t0x%X\n"
+           "k1:\t\t\t0x%X\n"
+           "gp:\t\t\t0x%X\n"
+           "sp:\t\t\t0x%X\n"
+           "fp:\t\t\t0x%X\n"
+           "ra:\t\t\t0x%X\n",
+           zero,at,v0,v1,a0,a1,a2,a3,
+           t0,t1,t2,t3,t4,t5,t6,t7,t8,t9,
+           s0,s1,s2,s3,s4,s5,s6,s7,k0,k1,gp,sp,fp,ra);
 }
 

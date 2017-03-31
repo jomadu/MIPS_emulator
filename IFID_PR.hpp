@@ -14,10 +14,11 @@
 
 class IFID_PR{
 public:
-    unsigned int pcplus4;
+    unsigned int pcnext;
     Instruction instr;
 public:
     IFID_PR();
+    void print();
 };
 
 #endif /* IFID_PR_hpp */

@@ -20,12 +20,13 @@ public:
     bool branch;
     bool memWrite;
     bool memRead;
-    bool ALUCompare;
     unsigned int ALUResult;
+    bool ALUResultUnsigned;
     unsigned int memWriteData;
     unsigned int regFileWriteReg;
 public:
     EXMEM_PR();
+    void print();
 };
 
 #endif /* EXMEM_PR_hpp */

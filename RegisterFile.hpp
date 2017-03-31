@@ -49,6 +49,7 @@ public:
     RegisterFile();
     void writeReg(unsigned int regNum, unsigned int data);
     unsigned int readReg(unsigned int regNum);
+    void print();
 };
 
 #endif /* RegisterFile_hpp */

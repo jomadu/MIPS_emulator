@@ -14,58 +14,41 @@ using namespace std;
 
 Memory::Memory(){
     mem = new unsigned int [MEMSIZE/4];
-    memStart = INIT_MEMSTART;
 }
 
 Memory::Memory(char * iFile, unsigned int &pc){
     mem = new unsigned int [MEMSIZE/4];
-    memStart = INIT_MEMSTART;
     importFile(iFile, pc);
 }
 
-unsigned int Memory::fetchInstr(unsigned int addr){
+unsigned int Memory::fetch(unsigned int addr){
     // Fetch instruction mc from low memory
     int memIdx = addr2idx(addr);
     return mem[memIdx];
 }
 
-void Memory::storeInstr(unsigned int mc, unsigned int addr){
+void Memory::store(unsigned int mc, unsigned int addr){
     // Store instruction mc in low memory
     int memIdx = addr2idx(addr);
     mem[memIdx] = mc;
     return;
 }
 
-unsigned int Memory::loadData(unsigned int addr){
-    // Load data from high memory
-    // FUTURE TODO: This may screw things up royally (off by one error?)
-    int memIdx = MEMSIZE - addr2idx(addr);
-    return mem[memIdx];
-}
-
-void Memory::storeData(unsigned int data, unsigned int addr){
-    // Store data to high memory
-    // FUTURE TODO: SEE ABOVE OR BEAR THE CONSEQUENCES
-    int memIdx = MEMSIZE - addr2idx(addr);
-    mem[memIdx] = data;
-    return;
-}
-
 int Memory::addr2idx(unsigned int addr){
-    return (addr - memStart)/4;
+    return addr/4;
 }
 
 void Memory::importFile(char * iFile, unsigned int &pc){
     char buffer[80];
-    char cAddr[80];
     char cData[80];
-    string sAddr;
     string sData;
-    int iAddr;
-    int iData;
-
+    unsigned long lData = 0x0;
+    unsigned int iData = 0x0;
+    unsigned int intMask = 0xFFFFFFFF;
+    unsigned int addr = 0x0;
+    
     FILE *fp;
-    int i = 0;
+    bool firstLine = true;
     stringstream ss;
 
 
@@ -80,30 +63,36 @@ void Memory::importFile(char * iFile, unsigned int &pc){
         // read in the line and make sure it was successful
         if (fgets(buffer,500,fp) != NULL)
         {
-            sscanf(buffer, "%s  %s", cAddr, cData);
-            
-            ss << cAddr;
-            ss >> sAddr;
-            iAddr = stoi(sAddr.substr(2,8),nullptr,16);
-            
-            ss.clear();
+            sscanf(buffer, "%s", cData);
             
             ss << cData;
             ss >> sData;
-            iData = stoi(sData.substr(2,8),nullptr,16);
+            lData = stoul(sData.substr(2,8),nullptr,16);
+            iData = (lData & intMask);
             
             ss.clear();
             
-            if(i == 0){
-                memStart = iAddr;
-                pc = iAddr;
+            if(firstLine){
+                pc = addr;
+                firstLine = false;
             }
             
-            storeInstr(iData, iAddr);
-            
-            printf("%d: %s",i++,buffer);
+            store(iData, addr);
+            addr += 4;
         }
     }
 }
 
+void Memory::print(unsigned int startAddr, unsigned int size){
+    unsigned int endAddr = startAddr + (size * 4);
+    unsigned int memIdx;
+    
+    printf("\nMemory\n"
+           "-------------\n"
+           "...\n");
+    for (unsigned int i = endAddr; i >= startAddr; i = i - 4){
+        memIdx = addr2idx(i);
+        printf("0x%X:\t0x%X\n", i, mem[memIdx]);
+    }
+}
 
