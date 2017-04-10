@@ -16,9 +16,10 @@ using namespace std;
 #define MEMSIZE 5000
 
 class Memory{
-public:
+private:
     unsigned int * mem;
-
+public:
+    int size;
 public:
     Memory();
     Memory(char * iFile, unsigned int &pc);

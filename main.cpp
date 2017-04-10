@@ -22,11 +22,14 @@ bool debug = true;
 #define BEQ "BEQ"
 #define J   "J"
 #define I   "I"
-#define MEMORYFILENAME "Regression-Testing/addi_test.txt"
+#define MEMORYFILENAME "memory.txt"
 
 
 // Memory
 Memory memory;
+
+//
+Cache cache;
 
 // Program Counter
 unsigned int PC = 0x0;
@@ -138,13 +141,22 @@ void IF(){
         PC = ifid.pcnext;
     }
     
-    // Fetch next instruction from PC address
-    ifid_buff.instr = decode(memory.fetch(PC));
-    
-    // pcnext to buffer
+    // Fetch next instruction from PC address in cache
+    // ifid_buff.instr = decode(memory.fetch(PC));
+    unsigned int cacheData;
+    bool cacheDataValid;
+    cacheDataValid = cache.loadData(cacheData, PC, memory);
+
     if (!hazardUnit.stall){
         // Nominal operation
-        ifid_buff.pcnext = PC + 4;
+        if (cacheDataValid){
+            ifid_buff.pcnext = PC + 4;
+            ifid_buff.instr = decode(cacheData);
+        }
+        else{
+            ifid_buff.pcnext = PC;
+            ifid_buff.instr.toNOP();
+        }
     }
     else{
         // Load-use hazard - insert a bubble (NOP)
@@ -598,22 +610,38 @@ void startup(){
     ifid.pcnext = PC;  
 }
 int main(int argc, const char * argv[]) {
-    startup();
-                         // Instruction         | Instruction       | Instruction       | Instruction       | Instruction       |
-    executeClockCycle(); // IF()                |                   |                   |                   |                   |
-    executeClockCycle(); // ID()                | IF()              |                   |                   |                   |
-    executeClockCycle(); // EX()                | ID()              | IF()              |                   |                   |
-    executeClockCycle(); // MEM()               | EX()              | ID()              | IF()              |                   |
-    executeClockCycle(); // WB()                | MEM()             | EX()              | ID()              | IF()              |
-    executeClockCycle(); //                     | WB()              | MEM()             | EX()              | ID()              |
-    executeClockCycle(); //                     |                   | WB()              | MEM()             | EX()              |
-    executeClockCycle(); //                     |                   |                   | WB()              | MEM()             |
-    executeClockCycle(); //                     |                   |                   |                   | WB()              |
+//    startup();
+//                         // Instruction         | Instruction       | Instruction       | Instruction       | Instruction       |
+//    executeClockCycle(); // IF()                |                   |                   |                   |                   |
+//    executeClockCycle(); // ID()                | IF()              |                   |                   |                   |
+//    executeClockCycle(); // EX()                | ID()              | IF()              |                   |                   |
+//    executeClockCycle(); // MEM()               | EX()              | ID()              | IF()              |                   |
+//    executeClockCycle(); // WB()                | MEM()             | EX()              | ID()              | IF()              |
+//    executeClockCycle(); //                     | WB()              | MEM()             | EX()              | ID()              |
+//    executeClockCycle(); //                     |                   | WB()              | MEM()             | EX()              |
+//    executeClockCycle(); //                     |                   |                   | WB()              | MEM()             |
+//    executeClockCycle(); //                     |                   |                   |                   | WB()              |
+//    executeClockCycle();
+//    executeClockCycle();
+//    executeClockCycle();
+//    executeClockCycle();
+//    executeClockCycle();
+//    
+    char file [] = MEMORYFILENAME;
+    memory.importFile(file, PC);
+    cache = Cache(4, 4, memory);
+    
     executeClockCycle();
     executeClockCycle();
     executeClockCycle();
     executeClockCycle();
+    executeClockCycle(); // IF
+    executeClockCycle(); // ID
+    executeClockCycle(); // EX
+    executeClockCycle(); // MEM
+    executeClockCycle(); // WB
     executeClockCycle();
+    
     return 0;
 }
 

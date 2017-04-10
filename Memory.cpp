@@ -14,11 +14,13 @@ using namespace std;
 
 Memory::Memory(){
     mem = new unsigned int [MEMSIZE/4];
+    size = MEMSIZE;
 }
 
 Memory::Memory(char * iFile, unsigned int &pc){
     mem = new unsigned int [MEMSIZE/4];
     importFile(iFile, pc);
+    size = MEMSIZE;
 }
 
 unsigned int Memory::fetch(unsigned int addr){
