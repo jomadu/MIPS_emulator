@@ -1,0 +1,12 @@
+0x20080002  // addi t0 zero 0x2 -> t0 = 0x2
+0x20090003  // addi t1 zero 0x3 -> t1 = 0x3
+0x200AFFFC  // addi t2 zero 0xFFFC -> t2 = 0xFFFC
+0x200BFFFF  // addi t3 zero 0xFFFF -> t3 = 0xFFFF
+0x01098021  // addu $s0 $t0 $t1 -> s0 = 0x5
+0x010a8821  // addu $s1 $t0 $t2 -> s1 = 0xFFFF
+0x012b9021  // addu $s2 $t1 $t3 -> s2 = 0x2
+0x02329821  // addu $s3 $s1 $s2 -> s3 = 0x1
+0x0271a021  // addu $s4 $s3 $s1 -> s4 = 0x0
+0x026aa821  // addu $s5 $s3 $t2 -> s5 = 0xFFFD
+0x00000021  // addu $zero, $zero, $zero
+0x00000021  // addu $zero, $zero, $zero

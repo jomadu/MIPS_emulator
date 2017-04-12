@@ -1,25 +1,43 @@
 Things to test:
-addi
-addiu
-add
-and
-nor
-or
-slt
-sltu
-sll
-srl
-sub
-subu
-div
-divu
-mult
-multu
-addiu
-andi
-ori
-slti
-sltiu
+addi - tested, works
+addiu - tested, works
+add - tested, works
+and - tested, works
+nor - DOES NOT WORK (just or instead of nor)
+or  - tested, works
+slt - tested, works
+sltu - tested, works
+sll - tested, works
+srl - tested, works
+sub - tested, works
+subu - tested, works
+div - we don't need to do this
+divu - or this
+mult - or this
+multu - or this
+andi - MOSTLY WORKS (this is supposed to zero extended, not sign extended, so upper 16 bytes are wrong sometimes)
+addiu - is this supposed to be addu? if so, addu doesn't work
+ori - MOSTLY WORKS (also should be zero extended)
+slti - tested, works
+sltiu - tested, works
 lw
 sw
 beq
+
+***************Missing from this list***************
+jr
+movn
+movz
+xor
+xori
+bne
+bgtz
+bltz
+blez
+j
+jal
+lbu
+lhu
+lui
+sb
+sh
