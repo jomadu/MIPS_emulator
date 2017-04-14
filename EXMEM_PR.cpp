@@ -11,7 +11,6 @@
 EXMEM_PR::EXMEM_PR(){
     regWrite = false;
     memToReg = false;
-    branch = false;
     memWrite = false;
     memRead = false;
     ALUResult = 0x0;
@@ -25,7 +24,6 @@ void EXMEM_PR::print(){
            "------------------------\n"
            "regWrite:\t\t\t%s\n"
            "memToReg:\t\t\t%s\n"
-           "branch:\t\t\t\t%s\n"
            "memWrite:\t\t\t%s\n"
            "memRead:\t\t\t%s\n"
            "ALUResult:\t\t\t0x%X\n"
@@ -33,7 +31,6 @@ void EXMEM_PR::print(){
            "regFileWriteReg:\t0x%X\n\n",
            regWrite ? "true":"false",
            memToReg ? "true":"false",
-           branch ? "true":"false",
            memWrite ? "true":"false",
            memRead ? "true":"false",
            ALUResult,

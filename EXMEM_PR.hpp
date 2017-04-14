@@ -17,7 +17,6 @@ public:
     Instruction instr;
     bool regWrite;
     bool memToReg;
-    bool branch;
     bool memWrite;
     bool memRead;
     unsigned int ALUResult;

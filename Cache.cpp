@@ -9,12 +9,8 @@
 #include "Cache.hpp"
 #include "Memory.hpp"
 
-Cache::Cache(){
-    cacheSize = DEFAULT_CACHE_SIZE;
-    missPenalty = DEFAULT_MISS_PENALTY-1;
-    inPenalty = 0;
-    blocks = new Block[cacheSize];
-}
+
+Cache::Cache(){}
 
 Cache::Cache(int size, int penalty, Memory &mem){
     cacheSize = size;
@@ -24,16 +20,18 @@ Cache::Cache(int size, int penalty, Memory &mem){
     
     //TODO: implement check to see if resulting
     
+    numOffsetBits = 2;
     numIdxBits = ceil(log2(size));
-    numTagBits = 32 - numIdxBits;
+    numTagBits = 32 - numIdxBits - numOffsetBits;
     
     // Is numTagBits > ceil(log2(mem.memSize));
-    if (numTagBits < ceil(log2(mem.size))){
+    if (numTagBits < ceil(log2(mem.size/cacheSize))){
         perror("Cache size is too small. Not enough bits to differentiate between all blocks.");
     }
     
-    idxMask = 0xFFFFFFFF >> (numTagBits);
-    tagMask = 0xFFFFFFFF << (numIdxBits);
+    idxMask = (0xFFFFFFFF >> (numTagBits)) << numOffsetBits;
+    tagMask = 0xFFFFFFFF << (numIdxBits + numOffsetBits);
+    offsetMask = 0xFFFFFFFF >> (32 - numOffsetBits);
 
 }
 bool Cache::checkData(unsigned int addr){
@@ -45,6 +43,7 @@ bool Cache::checkData(unsigned int addr){
 bool Cache::loadData(unsigned int &ret, unsigned int addr, Memory &mem){
     unsigned int idx = getIdx(addr);
     unsigned int tag = getTag(addr);
+    unsigned int offset = getOffset(addr);
     
     // Are we inPenalty?
     // No
@@ -65,22 +64,88 @@ bool Cache::loadData(unsigned int &ret, unsigned int addr, Memory &mem){
     
     if (!inPenalty){
         if (blocks[idx].valid && (blocks[idx].tag == tag)){
-            ret = blocks[idx].data;
+            if (DEBUG){
+                printf("Cache Hit!\n");
+            }
+            switch (offset) {
+                case 0x0:
+                    ret = blocks[idx].data;
+                    break;
+                case 0x1:
+                    ret = (blocks[idx].data & BYTE0_MASK) >> 0;
+                    break;
+                case 0x2:
+                    ret = (blocks[idx].data & BYTE1_MASK) >> 8;
+                    break;
+                case 0x3:
+                    ret = (blocks[idx].data & BYTE2_MASK) >> 16;
+                    break;
+                case 0x4:
+                    ret = (blocks[idx].data & BYTE3_MASK) >> 24;
+                    break;
+                default:
+                    break;
+            }
             return true;
         }
         else{
+            if (true){
+                printf("Cache Miss! Block filling and starting penalty.\n");
+            }
             blockFill(addr, NUM_BLOCK_FILL, mem);
             inPenalty = missPenalty;
-            ret = blocks[idx].data;
+            switch (offset) {
+                case 0x0:
+                    ret = blocks[idx].data;
+                    break;
+                case 0x1:
+                    ret = (blocks[idx].data & BYTE0_MASK) >> 0;
+                    break;
+                case 0x2:
+                    ret = (blocks[idx].data & BYTE1_MASK) >> 8;
+                    break;
+                case 0x3:
+                    ret = (blocks[idx].data & BYTE2_MASK) >> 16;
+                    break;
+                case 0x4:
+                    ret = (blocks[idx].data & BYTE3_MASK) >> 24;
+                    break;
+                default:
+                    break;
+            }
             return false;
         }
     }
     else{
+        if (DEBUG){
+            printf("Cache Miss! At Penalty = %i\n", inPenalty);
+        }
         inPenalty--;
         if (!inPenalty){
+            if (DEBUG){
+                printf("Penalty over. Validating lines for next request.\n");
+            }
             validateBlocks(addr, NUM_BLOCK_FILL);
         }
-        ret = blocks[idx].data;
+        switch (offset) {
+            case 0x0:
+                ret = blocks[idx].data;
+                break;
+            case 0x1:
+                ret = (blocks[idx].data & BYTE0_MASK) >> 0;
+                break;
+            case 0x2:
+                ret = (blocks[idx].data & BYTE1_MASK) >> 8;
+                break;
+            case 0x3:
+                ret = (blocks[idx].data & BYTE2_MASK) >> 16;
+                break;
+            case 0x4:
+                ret = (blocks[idx].data & BYTE3_MASK) >> 24;
+                break;
+            default:
+                break;
+        }
         return false;
     }
 }
@@ -92,7 +157,7 @@ void Cache::blockFill(unsigned int addr, unsigned int nLines, Memory mem){
     for (int i = 0; i < nLines; i++){
         idx = getIdx(addr);
         tag = getTag(addr);
-        blocks[idx].data = mem.fetch(addr);
+        blocks[idx].data = mem.loadW(addr);
         blocks[idx].tag = tag;
         blocks[idx].valid = false;
         addr = addr + 4;
@@ -115,10 +180,30 @@ void Cache::flush(){
     }
 }
 
+void Cache::print(){
+    printf("\nCache\n"
+           "-------------\n"
+           "idx | v | tag | data |\n"
+           "----------------------\n");
+    
+    for (unsigned int i = 0; i < cacheSize; i++){
+        printf("0x%X | %d | 0x%X | 0x%X |\n",
+               i,
+               blocks[i].valid,
+               blocks[i].tag,
+               blocks[i].data);
+    }
+}
+
+
 unsigned int Cache::getTag(unsigned int addr){
-    return (addr & tagMask) >> numIdxBits;
+    return (addr & tagMask) >> (numIdxBits + numOffsetBits);
 }
 
 unsigned int Cache::getIdx(unsigned int addr){
-    return (addr & idxMask) >> numIdxBits;
+    return (addr & idxMask) >> numOffsetBits;
+}
+
+unsigned int Cache::getOffset(unsigned int addr){
+    return (addr & offsetMask);
 }

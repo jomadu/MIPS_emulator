@@ -14,6 +14,10 @@
 using namespace std;
 
 #define MEMSIZE 5000
+#define BYTE0_MASK 0x000000FF
+#define BYTE1_MASK 0x0000FF00
+#define BYTE2_MASK 0x00FF0000
+#define BYTE3_MASK 0xFF000000
 
 class Memory{
 private:
@@ -23,8 +27,10 @@ public:
 public:
     Memory();
     Memory(char * iFile, unsigned int &pc);
-    unsigned int fetch(unsigned int addr);
-    void store(unsigned int mc, unsigned int addr);
+    unsigned int loadW(unsigned int addr);
+    void storeW(unsigned int dataW, unsigned int addr);
+    unsigned int loadB(unsigned int addr, int offset);
+    void storeB(unsigned int dataB, unsigned int addr, int offset);
     int addr2idx(unsigned int addr);
     void importFile(char * iFile, unsigned int &pc);
     void print(unsigned int startAddr, unsigned int size);

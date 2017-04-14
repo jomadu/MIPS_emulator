@@ -23,16 +23,63 @@ Memory::Memory(char * iFile, unsigned int &pc){
     size = MEMSIZE;
 }
 
-unsigned int Memory::fetch(unsigned int addr){
+unsigned int Memory::loadW(unsigned int addr){
     // Fetch instruction mc from low memory
     int memIdx = addr2idx(addr);
     return mem[memIdx];
 }
 
-void Memory::store(unsigned int mc, unsigned int addr){
+void Memory::storeW(unsigned int dataW, unsigned int addr){
     // Store instruction mc in low memory
     int memIdx = addr2idx(addr);
-    mem[memIdx] = mc;
+    mem[memIdx] = dataW;
+    return;
+}
+
+unsigned int Memory::loadB(unsigned int addr, int offset){
+    // Fetch instruction mc from low memory
+    addr = addr + offset;
+    int memIdx = addr2idx(addr);
+    switch (offset % 4) {
+        case 0:
+            return (mem[memIdx] & BYTE0_MASK) >> 0;
+            break;
+        case 1:
+            return (mem[memIdx] & BYTE1_MASK) >> 8;
+            break;
+        case 2:
+            return (mem[memIdx] & BYTE2_MASK) >> 16;
+            break;
+        case 3:
+            return (mem[memIdx] & BYTE3_MASK) >> 24;
+            break;
+        default:
+            break;
+    }
+    return mem[memIdx];
+}
+
+void Memory::storeB(unsigned int dataB, unsigned int addr, int offset){
+    // Store instruction mc in low memory
+    addr = addr + offset;
+    int memIdx = addr2idx(addr);
+    
+    switch (offset % 4) {
+        case 0:
+            mem[memIdx] = (mem[memIdx] & ~BYTE0_MASK) | (dataB << 0);
+            break;
+        case 1:
+            mem[memIdx] = (mem[memIdx] & ~BYTE1_MASK) | (dataB << 8);
+            break;
+        case 2:
+            mem[memIdx] = (mem[memIdx] & ~BYTE2_MASK) | (dataB << 16);
+            break;
+        case 3:
+            mem[memIdx] = (mem[memIdx] & ~BYTE3_MASK) | (dataB << 24);
+            break;
+        default:
+            break;
+    }
     return;
 }
 
@@ -79,7 +126,7 @@ void Memory::importFile(char * iFile, unsigned int &pc){
                 firstLine = false;
             }
             
-            store(iData, addr);
+            storeW(iData, addr);
             addr += 4;
         }
     }
@@ -88,13 +135,15 @@ void Memory::importFile(char * iFile, unsigned int &pc){
 void Memory::print(unsigned int startAddr, unsigned int size){
     unsigned int endAddr = startAddr + (size * 4);
     unsigned int memIdx;
+    int addr;
     
     printf("\nMemory\n"
            "-------------\n"
            "...\n");
-    for (unsigned int i = endAddr; i >= startAddr; i = i - 4){
-        memIdx = addr2idx(i);
-        printf("0x%X:\t0x%X\n", i, mem[memIdx]);
+    for (int i = size; i >= 0; i--){
+        addr = startAddr + (i * 4);
+        memIdx = addr2idx(addr);
+        printf("0x%X:\t0x%X\n", addr, mem[memIdx]);
     }
 }
 
