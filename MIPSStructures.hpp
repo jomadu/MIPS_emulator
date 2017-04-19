@@ -18,6 +18,7 @@
 #include "IDEX_PR.hpp"
 #include "EXMEM_PR.hpp"
 #include "MEMWB_PR.hpp"
+#include "iCache.hpp"
 #include "Cache.hpp"
 
 #endif /* MIPSStructures_hpp */

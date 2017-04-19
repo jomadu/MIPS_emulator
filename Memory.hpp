@@ -18,6 +18,9 @@ using namespace std;
 #define BYTE1_MASK 0x0000FF00
 #define BYTE2_MASK 0x00FF0000
 #define BYTE3_MASK 0xFF000000
+#define HWL_MASK 0x0000FFFF
+#define HWM_MASK 0x00FFFF00
+#define HWH_MASK 0xFFFF0000
 
 class Memory{
 private:
@@ -29,6 +32,8 @@ public:
     Memory(char * iFile, unsigned int &pc);
     unsigned int loadW(unsigned int addr);
     void storeW(unsigned int dataW, unsigned int addr);
+    unsigned int loadHW(unsigned int addr, int offset);
+    void storeHW(unsigned int dataHW, unsigned int addr, int offset);
     unsigned int loadB(unsigned int addr, int offset);
     void storeB(unsigned int dataB, unsigned int addr, int offset);
     int addr2idx(unsigned int addr);

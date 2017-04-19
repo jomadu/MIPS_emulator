@@ -15,23 +15,24 @@
 
 using namespace std;
 
-bool debug = true;
 #define R   "R"
 #define LW  "LW"
+#define LHU  "LHU"
 #define LBU  "LBU"
 #define SW  "SW"
 #define SB  "SB"
 #define BEQ "BEQ"
 #define J   "J"
 #define I   "I"
-#define MEMORYFILENAME "memory.txt"
+#define MEMORYFILENAME "Regression-Testing/sw_test.txt"
 
 
 // Memory
 Memory memory;
 
 //
-Cache cache;
+Cache icache;
+Cache dcache;
 
 // Program Counter
 unsigned int PC = 0x0;
@@ -56,21 +57,21 @@ ForwardingUnit forwardingUnit;
 // Register File
 RegisterFile regFile;
 
-void printState(){
+void printPipeline(){
     printf("|------------------------|--------------------------------|---------------------------------|---------------------------------|\n"
            "|IFID Pipeline Register  |IDEX Pipeline Register          |EXMEM Pipeline Register          |MEMWB Pipeline Register          |\n"
            "|------------------------|--------------------------------|---------------------------------|---------------------------------|\n"
            "|Instruction:            |                                |                                 |                                 |\n"
            "|------------            |------------                    |------------                     |------------                     |\n");
-    printf("|opcode: 0x%-14X|opcode: 0x%-22X|                                 |                                 |\n", ifid.instr.opcode,idex.instr.opcode);
-    printf("|rs:     0x%-14X|rs:     0x%-22X|                                 |                                 |\n", ifid.instr.rs,idex.instr.rs);
-    printf("|rt:     0x%-14X|rt:     0x%-22X|                                 |                                 |\n", ifid.instr.rt,idex.instr.rt);
-    printf("|rd:     0x%-14X|rd:     0x%-22X|                                 |                                 |\n", ifid.instr.rd,idex.instr.rd);
-    printf("|shamt:  0x%-14X|shamt:  0x%-22X|                                 |                                 |\n", ifid.instr.shamt,idex.instr.shamt);
-    printf("|funct:  0x%-14X|funct:  0x%-22X|                                 |                                 |\n", ifid.instr.funct,idex.instr.funct);
-    printf("|immed:  0x%-14X|immed:  0x%-22X|                                 |                                 |\n", ifid.instr.immed,idex.instr.immed);
-    printf("|addr:   0x%-14X|addr:   0x%-22X|                                 |                                 |\n", ifid.instr.addr,idex.instr.addr);
-    printf("|type:   %-16s|type:   %-24s|                                 |                                 |\n", ifid.instr.type.c_str(),idex.instr.type.c_str());
+    printf("|opcode: 0x%-14X|opcode: 0x%-22X|opcode: 0x%-23X|opcode: 0x%-23X|\n", ifid.instr.opcode,idex.instr.opcode,exmem.instr.opcode,memwb.instr.opcode);
+    printf("|rs:     0x%-14X|rs:     0x%-22X|rs:     0x%-23X|rs:     0x%-23X|\n", ifid.instr.rs,idex.instr.rs,exmem.instr.rs,memwb.instr.rs);
+    printf("|rt:     0x%-14X|rt:     0x%-22X|rt:     0x%-23X|rt:     0x%-23X|\n", ifid.instr.rt,idex.instr.rt,exmem.instr.rt,memwb.instr.rt);
+    printf("|rd:     0x%-14X|rd:     0x%-22X|rd:     0x%-23X|rd:     0x%-23X|\n", ifid.instr.rd,idex.instr.rd,exmem.instr.rd,memwb.instr.rd);
+    printf("|shamt:  0x%-14X|shamt:  0x%-22X|shamt:  0x%-23X|shamt:  0x%-23X|\n", ifid.instr.shamt,idex.instr.shamt,exmem.instr.shamt,memwb.instr.shamt);
+    printf("|funct:  0x%-14X|funct:  0x%-22X|funct:  0x%-23X|funct:  0x%-23X|\n", ifid.instr.funct,idex.instr.funct,exmem.instr.funct,memwb.instr.funct);
+    printf("|immed:  0x%-14X|immed:  0x%-22X|immed:  0x%-23X|immed:  0x%-23X|\n", ifid.instr.immed,idex.instr.immed,exmem.instr.immed,memwb.instr.immed);
+    printf("|addr:   0x%-14X|addr:   0x%-22X|addr:   0x%-23X|addr:   0x%-23X|\n", ifid.instr.addr,idex.instr.addr,exmem.instr.addr,memwb.instr.addr);
+    printf("|type:   %-16s|type:   %-24s|type:   %-25s|type:   %-25s|\n", ifid.instr.type.c_str(),idex.instr.type.c_str(),exmem.instr.type.c_str(),memwb.instr.type.c_str());
     printf("|                        |                                |                                 |                                 |\n"
            "|Other                   |                                |                                 |                                 |\n"
            "|------------            |------------                    |------------                     |------------                     |\n");
@@ -113,7 +114,7 @@ void printState(){
            idex.regFileReadData2);
     printf("|                        |signExtend:         0x%-10X|                                 |                                 |\n",
            idex.signExtend);
-    printf("|------------------------|--------------------------------|---------------------------------|---------------------------------|\n");
+    printf("|------------------------|--------------------------------|---------------------------------|---------------------------------|\n\n");
 }
 
 Instruction decode(unsigned int mc){
@@ -153,6 +154,9 @@ Instruction decode(unsigned int mc){
         case 0x24:
             myInstr.type = LBU;
             break;
+        case 0x25:
+            myInstr.type = LHU;
+            break;
         case 0x2B:
             myInstr.type = SW;
             break;
@@ -161,9 +165,6 @@ Instruction decode(unsigned int mc){
             break;
         case 0x4:
             myInstr.type = BEQ;
-            break;
-        case 0x2:
-            myInstr.type = LW;
             break;
         default:
             myInstr.type = I;
@@ -175,10 +176,15 @@ Instruction decode(unsigned int mc){
 
 //  LoadPR
 void loadPR(){
-    ifid = ifid_buff;
-    idex = idex_buff;
-    exmem = exmem_buff;
-    memwb = memwb_buff;
+    if (!dcache.haultPipeline){
+        if (hazardUnit.stall){
+            ifid_buff.instr.toNOP();
+        }
+        ifid = ifid_buff;
+        idex = idex_buff;
+        exmem = exmem_buff;
+        memwb = memwb_buff;
+    }
 }
 
 void IF(){
@@ -186,6 +192,7 @@ void IF(){
     bool regFileReadDataCompare;
     bool branchInstrInID;
     unsigned int branchTarget;
+    
     
     //Computing Branch Target and Branch indicator (PCSrc)
     if (ifid.instr.immed >= 0x8000){
@@ -203,31 +210,28 @@ void IF(){
     // PC input Mux
     if (PCSrc){
         // Branch in ID taken. Next PC is the branch target
-        PC = branchTarget;
+        if (!hazardUnit.stall){
+            PC = branchTarget;
+        }
     }
     else{
-        PC = ifid.pcnext;
+        if (!hazardUnit.stall){
+            PC = ifid.pcnext;
+        }
     }
     
-    // Fetch next instruction from PC address in cache
+    // Fetch next instruction from PC address in iCache
     // ifid_buff.instr = decode(memory.fetch(PC));
-    unsigned int cacheData;
-    bool cacheDataValid;
-    cacheDataValid = cache.loadData(cacheData, PC, memory);
+    unsigned int iCacheData;
+    bool iCacheDataValid;
+    iCacheDataValid = icache.loadW(iCacheData, PC, memory);
     
-    if (!hazardUnit.stall){
-        // Nominal operation
-        if (cacheDataValid){
-            ifid_buff.pcnext = PC + 4;
-            ifid_buff.instr = decode(cacheData);
-        }
-        else{
-            ifid_buff.pcnext = PC;
-            ifid_buff.instr.toNOP();
-        }
+    // Nominal operation
+    if (iCacheDataValid){
+        ifid_buff.pcnext = PC + 4;
+        ifid_buff.instr = decode(iCacheData);
     }
     else{
-        // Load-use hazard - insert a bubble (NOP)
         ifid_buff.pcnext = PC;
         ifid_buff.instr.toNOP();
     }
@@ -247,8 +251,6 @@ void WB(){
 void ID(){
     idex_buff.instr = ifid.instr;
     
-    hazardUnit.update(ifid, idex);
-    
     if (!ifid.instr.type.compare(R)){
         idex_buff.regDst = true;
         idex_buff.ALUOp0 = false;
@@ -260,7 +262,7 @@ void ID(){
         idex_buff.regWrite = true;
         idex_buff.memToReg = false;
     }
-    else if (!ifid.instr.type.compare(LW) || !ifid.instr.type.compare(LBU)){
+    else if (!ifid.instr.type.compare(LW) || !ifid.instr.type.compare(LBU) || !ifid.instr.type.compare(LHU)){
         idex_buff.regDst = false;
         idex_buff.ALUOp0 = false;
         idex_buff.ALUOp1 = false;
@@ -308,7 +310,7 @@ void ID(){
         idex_buff.memToReg = false;
     }
     else{
-        perror("Unable to derive control lines from instruction.\n");
+        printf("ID: Unable to derive control lines from instruction.\n\n");
     }
 
     idex_buff.regFileReadData1 = regFile.readReg(ifid.instr.rs);
@@ -321,6 +323,8 @@ void ID(){
     else{
         idex_buff.signExtend = ifid.instr.immed;
     }
+    
+    hazardUnit.update(ifid_buff, idex_buff);
     
 }
 
@@ -521,6 +525,10 @@ void EX(){
                 //lbu
                 unsignedFlag = true;
                 break;
+            case 0x25:
+                //lhu
+                unsignedFlag = true;
+                break;
             case 0x28:
                 //sb
                 break;
@@ -652,26 +660,39 @@ void EX(){
 }
 
 void MEM(){
+    unsigned int dCacheData;
+    bool dCacheLoadDataValid;
+    bool dCacheStoreValid;
     memwb_buff.instr = exmem.instr;
     memwb_buff.regWrite = exmem.regWrite;
     memwb_buff.memToReg = exmem.memToReg;
     
     if (exmem.memRead && !exmem.memWrite){
-        if (exmem.instr.opcode == 0x24){
-            memwb_buff.memReadData = memory.loadB(exmem.ALUResult, exmem.instr.immed);
+        if (!exmem.instr.type.compare(LBU)){
+            //memwb_buff.memReadData = memory.loadB(exmem.ALUResult, exmem.instr.immed);
+            //memwb_buff.memReadData = dcache.loadB(exmem.ALUResult, exmem.instr.immed);
+        }
+        else if (!exmem.instr.type.compare(LHU)){
+            //memwb_buff.memReadData = memory.loadHW(exmem.ALUResult, exmem.instr.immed);
+            //memwb_buff.memReadData = dcache.loadHW(exmem.ALUResult, exmem.instr.immed);
         }
         else{
-            memwb_buff.memReadData = memory.loadW(exmem.ALUResult);
+            //memwb_buff.memReadData = memory.loadW(exmem.ALUResult);
+            dCacheLoadDataValid = dcache.loadW(dCacheData, exmem.ALUResult, memory);
+            if (dCacheLoadDataValid){
+                memwb_buff.memReadData = dCacheData;
+            }
         }
     }
     else if (!exmem.memRead && exmem.memWrite){
         memwb_buff.memReadData = 0x0;
-        if (exmem.instr.opcode == 0x28){
+        if (!exmem.instr.type.compare(SB)){
             memory.storeB(exmem.memWriteData, exmem.ALUResult, exmem.instr.immed);
 
         }
         else{
-            memory.storeW(exmem.memWriteData, exmem.ALUResult);
+            dCacheStoreValid = dcache.storeW(exmem.memWriteData, exmem.ALUResult, memory);
+            //memory.storeW(exmem.memWriteData, exmem.ALUResult);
         }
     }
     else if (exmem.memRead && exmem.memWrite){
@@ -682,14 +703,24 @@ void MEM(){
 }
 
 void executeClockCycle(){
+    if (debug){
+        printf("Executing Cycle...\n\n");
+    }
     IF();
     WB();
     ID();
     EX();
     MEM();
     loadPR();
+    
     if (debug){
-        printState();
+        printf("|------------------------------|\n"
+               "| State After Cycle Execution  |\n"
+               "|------------------------------|\n\n");
+        icache.print();
+        dcache.print();
+        regFile.print();
+        printPipeline();
 //        ifid.print();
 //        idex.print();
 //        exmem.print();
@@ -702,10 +733,8 @@ void startup(){
     char file [] = MEMORYFILENAME;
     memory.importFile(file, PC);
     ifid.pcnext = PC;
-    cache = Cache(16, 4, memory);
-    memory.print(0, 10);
-    cache.print();
-
+    icache = Cache(16, 1, 4, memory, "iCache");
+    dcache = Cache(16, 1, 4, memory, "dCache");
 }
 int main(int argc, const char * argv[]) {
     startup();
@@ -725,8 +754,15 @@ int main(int argc, const char * argv[]) {
     executeClockCycle();
     executeClockCycle();
     executeClockCycle();
-
-
+    executeClockCycle();
+    executeClockCycle();
+    executeClockCycle();
+    executeClockCycle();
+    executeClockCycle();
+    executeClockCycle();
+    executeClockCycle();
+    executeClockCycle();
+    
 
     return 0;
 }
