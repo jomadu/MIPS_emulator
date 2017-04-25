@@ -36,11 +36,44 @@ void Memory::storeW(unsigned int dataW, unsigned int addr){
     return;
 }
 
-unsigned int Memory::loadHW(unsigned int addr, int offset){
+int Memory::loadHW(unsigned int addr){
     // Fetch instruction mc from low memory
-    addr = addr + offset;
+    unsigned int byteOffset = getByteOffset(addr);
     int memIdx = addr2idx(addr);
-    switch (offset % 4) {
+    unsigned int hw;
+    switch (byteOffset % 4) {
+        case 0:
+            hw = (mem[memIdx] & HWL_MASK) >> 0;
+            break;
+        case 1:
+            printf("Halfword addr was not halfword aligned: 0x%X\n", addr);
+            hw = (mem[memIdx] & HWL_MASK) >> 0;
+            break;
+        case 2:
+            hw = (mem[memIdx] & HWH_MASK) >> 16;
+            break;
+        case 3:
+            printf("Halfword addr was not halfword aligned: 0x%X\n", addr);
+            hw = (mem[memIdx] & HWH_MASK) >> 16;
+            break;
+        default:
+            printf("Halfword addr was not halfword aligned: 0x%X\n", addr);
+            hw = (mem[memIdx] & HWL_MASK) >> 0;
+            break;
+    }
+    if (hw >= 0x8000){
+        return (0xFFFF0000 | hw);
+    }
+    else{
+        return hw;
+    }
+}
+
+unsigned int Memory::loadHWU(unsigned int addr){
+    // Fetch instruction mc from low memory
+    unsigned int byteOffset = getByteOffset(addr);
+    int memIdx = addr2idx(addr);
+    switch (byteOffset % 4) {
         case 0:
             return (mem[memIdx] & HWL_MASK) >> 0;
             break;
@@ -89,11 +122,11 @@ void Memory::storeHW(unsigned int dataHW, unsigned int addr, int offset){
     return;
 }
 
-unsigned int Memory::loadBU(unsigned int addr, int offset){
+unsigned int Memory::loadBU(unsigned int addr){
     // Fetch instruction mc from low memory
-    addr = addr + offset;
+    unsigned int byteOffset = getByteOffset(addr);
     int memIdx = addr2idx(addr);
-    switch (offset % 4) {
+    switch (byteOffset % 4) {
         case 0:
             return (mem[memIdx] & BYTE0_MASK) >> 0;
             break;
@@ -112,12 +145,44 @@ unsigned int Memory::loadBU(unsigned int addr, int offset){
     return mem[memIdx];
 }
 
-void Memory::storeBU(unsigned int dataB, unsigned int addr, int offset){
+int Memory::loadB(unsigned int addr){
+    // Fetch instruction mc from low memory
+    unsigned int byteOffset = getByteOffset(addr);
+    int memIdx = addr2idx(addr);
+    unsigned int b;
+    
+    switch (byteOffset % 4) {
+        case 0:
+            b = (mem[memIdx] & BYTE0_MASK) >> 0;
+            break;
+        case 1:
+            b = (mem[memIdx] & BYTE1_MASK) >> 8;
+            break;
+        case 2:
+            b = (mem[memIdx] & BYTE2_MASK) >> 16;
+            break;
+        case 3:
+            b = (mem[memIdx] & BYTE3_MASK) >> 24;
+            break;
+        default:
+            printf("Math is broken.");
+            b = (mem[memIdx] & BYTE0_MASK) >> 0;
+            break;
+    }
+    if (b >= 0x80){
+        return (0xFFFFFF00 | b);
+    }
+    else{
+        return b;
+    }
+}
+
+void Memory::storeBU(unsigned int dataB, unsigned int addr){
     // Store instruction mc in low memory
-    addr = addr + offset;
+    unsigned int byteOffset = getByteOffset(addr);
     int memIdx = addr2idx(addr);
     
-    switch (offset % 4) {
+    switch (byteOffset % 4) {
         case 0:
             mem[memIdx] = (mem[memIdx] & ~BYTE0_MASK) | (dataB << 0);
             break;
@@ -198,5 +263,9 @@ void Memory::print(unsigned int startAddr, unsigned int size){
         memIdx = addr2idx(addr);
         printf("0x%X:\t0x%X\n", addr, mem[memIdx]);
     }
+}
+
+unsigned int Memory::getByteOffset(unsigned int addr){
+    return (0x00000003 & addr);
 }
 

@@ -22,6 +22,7 @@ using namespace std;
 #define LHU  "LHU"
 #define LBU  "LBU"
 #define SW  "SW"
+#define SH "SH"
 #define SB  "SB"
 #define BEQ "BEQ"
 #define J   "J"
@@ -165,11 +166,14 @@ Instruction decode(unsigned int mc){
         case 0x25:
             myInstr.type = LHU;
             break;
-        case 0x2B:
-            myInstr.type = SW;
-            break;
         case 0x28:
             myInstr.type = SB;
+            break;
+        case 0x29:
+            myInstr.type = SH;
+            break;
+        case 0x2B:
+            myInstr.type = SW;
             break;
         case 0x4:
             myInstr.type = BEQ;
@@ -184,7 +188,7 @@ Instruction decode(unsigned int mc){
 
 //  LoadPR
 void loadPR(){
-    if (!dcache.haultPipeline){
+    if (!dcache.inPenalty){
         if (hazardUnit.stall){
             ifid_buff.instr.toNOP();
         }
@@ -200,6 +204,7 @@ void IF(){
     bool regFileReadDataCompare;
     bool branchInstrInID;
     unsigned int branchTarget;
+    unsigned int iCacheData;
     
     
     //Computing Branch Target and Branch indicator (PCSrc)
@@ -230,12 +235,10 @@ void IF(){
     
     // Fetch next instruction from PC address in iCache
     // ifid_buff.instr = decode(memory.fetch(PC));
-    unsigned int iCacheData;
-    bool iCacheDataValid;
-    iCacheDataValid = icache.loadW(iCacheData, PC, memory);
+    iCacheData = icache.loadW(PC, memory);
     
     // Nominal operation
-    if (iCacheDataValid){
+    if (!icache.inPenalty){
         ifid_buff.pcnext = PC + 4;
         ifid_buff.instr = decode(iCacheData);
     }
@@ -281,7 +284,7 @@ void ID(){
         idex_buff.regWrite = true;
         idex_buff.memToReg = true;
     }
-    else if (!ifid.instr.type.compare(SW)|| !ifid.instr.type.compare(SB)){
+    else if (!ifid.instr.type.compare(SW) || !ifid.instr.type.compare(SH) || !ifid.instr.type.compare(SB)){
         idex_buff.regDst = false;
         idex_buff.ALUOp0 = false;
         idex_buff.ALUOp1 = false;
@@ -659,61 +662,40 @@ void EX(){
 
 void MEM(){
     unsigned int dCacheData;
-    bool dCacheLoadDataValid;
-    bool dCacheStoreValid;
+
     memwb_buff.instr = exmem.instr;
     memwb_buff.regWrite = exmem.regWrite;
     memwb_buff.memToReg = exmem.memToReg;
     
     if (exmem.memRead && !exmem.memWrite){
         if (!exmem.instr.type.compare(LBU)){
-            dCacheLoadDataValid = dcache.loadBU(dCacheData, exmem.ALUResult, memory);
-            if (dCacheLoadDataValid){
-                memwb_buff.memReadData = dCacheData;
-            }
+            dCacheData = dcache.loadBU(exmem.ALUResult, memory);
+            memwb_buff.memReadData = dCacheData;
         }
         else if (!exmem.instr.type.compare(LB)){
-            dCacheLoadDataValid = dcache.loadBU(dCacheData, exmem.ALUResult, memory);
-            // sign-extending the unsigned byte
-            if (dCacheData >= 0x80){
-                dCacheData = (dCacheData | 0xFFFFFF00);
-            }
-            if (dCacheLoadDataValid){
-                memwb_buff.memReadData = dCacheData;
-            }
+            dCacheData = dcache.loadB(exmem.ALUResult, memory);
+            memwb_buff.memReadData = dCacheData;
         }
         else if (!exmem.instr.type.compare(LHU)){
-            dCacheLoadDataValid = dcache.loadHWU(dCacheData, exmem.ALUResult, memory);
-            if (dCacheLoadDataValid){
-                memwb_buff.memReadData = dCacheData;
-            }
+            dCacheData = dcache.loadHWU(exmem.ALUResult, memory);
+            memwb_buff.memReadData = dCacheData;
         }
         else if (!exmem.instr.type.compare(LH)){
-            dCacheLoadDataValid = dcache.loadHWU(dCacheData, exmem.ALUResult, memory);
-            // sign-extending the unsigned byte
-            if (dCacheData >= 0x8000){
-                dCacheData = (dCacheData | 0xFFFF0000);
-            }
-            if (dCacheLoadDataValid){
-                memwb_buff.memReadData = dCacheData;
-            }
+            dCacheData = dcache.loadHW(exmem.ALUResult, memory);
+            memwb_buff.memReadData = dCacheData;
         }
         else{
-            dCacheLoadDataValid = dcache.loadW(dCacheData, exmem.ALUResult, memory);
-            if (dCacheLoadDataValid){
-                memwb_buff.memReadData = dCacheData;
-            }
+            dCacheData = dcache.loadW(exmem.ALUResult, memory);
+            memwb_buff.memReadData = dCacheData;
         }
     }
     else if (!exmem.memRead && exmem.memWrite){
         memwb_buff.memReadData = 0x0;
         if (!exmem.instr.type.compare(SB)){
-            memory.storeBU(exmem.memWriteData, exmem.ALUResult, exmem.instr.immed);
-
+            dcache.storeB(exmem.memWriteData, exmem.ALUResult, memory);
         }
         else{
-            dCacheStoreValid = dcache.storeW(exmem.memWriteData, exmem.ALUResult, memory);
-            //memory.storeW(exmem.memWriteData, exmem.ALUResult);
+            dcache.storeW(exmem.memWriteData, exmem.ALUResult, memory);
         }
     }
     else if (exmem.memRead && exmem.memWrite){

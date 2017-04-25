@@ -18,8 +18,8 @@ Cache::Cache(int nSets, int sSize, int penalty, Memory &mem, string nm){
     setSize = sSize;
     missPenalty = penalty-1;
     name = nm;
-    inPenalty = 0;
-    haultPipeline = false;
+    penaltyCounter = 0;
+    inPenalty = false;
     
     numByteOffsetBits = ceil(log2(WORD_SIZE/8));
     numBlockOffsetBits = ceil(log2(setSize));
@@ -38,7 +38,7 @@ Cache::Cache(int nSets, int sSize, int penalty, Memory &mem, string nm){
     
 }
 
-bool Cache::loadW(unsigned int &ret, unsigned int addr, Memory &mem){
+unsigned int Cache::loadW(unsigned int addr, Memory &mem){
     unsigned int idx;
     unsigned int tag;
     unsigned int blockOffset;
@@ -46,238 +46,284 @@ bool Cache::loadW(unsigned int &ret, unsigned int addr, Memory &mem){
     
     decodeCacheAddr(tag, idx, blockOffset, byteOffset, addr);
     
-    // Are we inPenalty?
+    // Are we penaltyCounter?
     // No
     //   Is the data valid with correct tag?
     //   Yes
     //     return the data and true
     //   No
     //     load the data into the iCache
-    //     start the inPenalty Counter
+    //     start the penaltyCounter Counter
     //     return the data at block idx and false
     // Yes
-    //   Decrement the inPenalty Counter
-    //   After decrementing, is the inPenalty Counter now 0?
+    //   Decrement the penaltyCounter Counter
+    //   After decrementing, is the penaltyCounter Counter now 0?
     //   Yes
     //     set the loaded data valid bits true
     //     so that next time, we return valid data
     //   return the data at block idx and false
     
-    if (!inPenalty){
+    if (penaltyCounter == 0){
         if (sets[idx].valid && (sets[idx].tag == tag)){
             if (debug){
                 printf("%s: Hit!\n\n", name.c_str());
             }
-            ret = sets[idx].data;
-            haultPipeline = false;
-            return true;
+            inPenalty = false;
+            return sets[idx].data;
         }
         else{
             if (debug){
                 printf("%s: Miss! Block filling and starting penalty.\n\n", name.c_str());
             }
             blockFill(addr, NUM_BLOCK_FILL, mem);
-            inPenalty = missPenalty;
+            penaltyCounter = missPenalty;
             
-            ret = sets[idx].data;
-            haultPipeline = true;
-            return false;
+            inPenalty = true;
+            return sets[idx].data;
         }
     }
     else{
         if (debug){
-            printf("%s: Miss! At Penalty = %i\n\n", name.c_str(), inPenalty);
+            printf("%s: Miss! At Penalty = %i\n\n", name.c_str(), penaltyCounter);
         }
-        inPenalty--;
-        if (!inPenalty){
+        penaltyCounter--;
+        if (penaltyCounter == 0){
             if (debug){
                 printf("%s: Penalty over. Validating lines for next request.\n\n", name.c_str());
             }
             validateBlocks(addr, NUM_BLOCK_FILL);
         }
         
-        ret = sets[idx].data;
-        haultPipeline = true;
-        return false;
-    }
-}
-bool Cache::storeW(unsigned int dataW, unsigned int addr, Memory &mem){
-    unsigned int idx;
-    unsigned int tag;
-    unsigned int blockOffset;
-    unsigned int byteOffset;
-    
-    decodeCacheAddr(tag, idx, blockOffset, byteOffset, addr);
-    
-    // Are we inPenalty?
-    // No
-    //   Is the data at idx valid and have the correct tag?
-    //   Yes
-    //     Update the data with dataW
-    //   No
-    //     We need to store valid data in fill range
-    //     Bring in new blocks
-    //     Then update the data with dataW
-    //     Start Penalty
-    // Yes
-    //   Decrement the inPenalty Counter
-    //   After decrementing, is the inPenalty Counter now 0?
-    //   Yes
-    //     validate the loaded data, so that next time
-    //     we update the data with dataW
-    //   return false
-    
-    if (!inPenalty){
-        if (sets[idx].valid && (sets[idx].tag == tag)){
-            if (debug){
-                printf("%s: Hit!\n\n", name.c_str());
-            }
-            sets[idx].data = dataW;
-            haultPipeline = false;
-            return true;
-        }
-        else{
-            if (debug){
-                printf("%s: Miss! Block filling and starting penalty.\n\n",name.c_str());
-            }
-            blockFill(addr, NUM_BLOCK_FILL, mem);
-            inPenalty = missPenalty;
-            haultPipeline = true;
-            return false;
-        }
-    }
-    else{
-        if (debug){
-            printf("%s: Miss! At Penalty = %i\n\n", name.c_str(), inPenalty);
-        }
-        inPenalty--;
-        if (!inPenalty){
-            if (debug){
-                printf("%s: Penalty over. Validating lines for next request.\n\n", name.c_str());
-            }
-            validateBlocks(addr, NUM_BLOCK_FILL);
-        }
-        haultPipeline = true;
-        return false;
+        inPenalty = true;
+        return sets[idx].data;
     }
 }
 
-bool Cache::loadHWU(unsigned int &ret, unsigned int addr, Memory &mem){
+unsigned int Cache::loadHWU(unsigned int addr, Memory &mem){
     unsigned int idx;
     unsigned int tag;
     unsigned int blockOffset;
     unsigned int byteOffset;
+    unsigned int ret;
     
     decodeCacheAddr(tag, idx, blockOffset, byteOffset, addr);
     
-    // Are we inPenalty?
+    // Are we penaltyCounter?
     // No
     //   Is the data valid with correct tag?
     //   Yes
     //     return the data and true
     //   No
     //     load the data into the iCache
-    //     start the inPenalty Counter
+    //     start the penaltyCounter Counter
     //     return the data at block idx and false
     // Yes
-    //   Decrement the inPenalty Counter
-    //   After decrementing, is the inPenalty Counter now 0?
+    //   Decrement the penaltyCounter Counter
+    //   After decrementing, is the penaltyCounter Counter now 0?
     //   Yes
     //     set the loaded data valid bits true
     //     so that next time, we return valid data
     //   return the data at block idx and false
     
-    if (!inPenalty){
+    if (penaltyCounter == 0){
         if (sets[idx].valid && (sets[idx].tag == tag)){
             if (debug){
                 printf("%s: Hit!\n\n", name.c_str());
             }
+            inPenalty = false;
             switch(byteOffset % 4){
                 case 0:
-                    ret = (HWL_MASK & sets[idx].data) >> 0;
-                    break;
+                    return (HWL_MASK & sets[idx].data) >> 0;
                 case 1:
                     printf("Halfword addr was not halfword aligned: 0x%X\n", addr);
-                    ret = (HWL_MASK & sets[idx].data) >> 0;
-                    break;
+                    return (HWL_MASK & sets[idx].data) >> 0;
                 case 2:
-                    ret = (HWH_MASK & sets[idx].data) >> 16;
-                    break;
+                    return (HWH_MASK & sets[idx].data) >> 16;
                 case 3:
                     printf("Halfword addr was not halfword aligned: 0x%X\n", addr);
-                    ret = (HWH_MASK & sets[idx].data) >> 16;
-                    break;
+                    return (HWH_MASK & sets[idx].data) >> 16;
                 default:
                     printf("Halfword addr was not halfword aligned: 0x%X\n", addr);
-                    break;
+                    return (HWL_MASK & sets[idx].data) >> 0;
             }
-            haultPipeline = false;
-            return true;
+
         }
         else{
             if (debug){
                 printf("%s: Miss! Block filling and starting penalty.\n\n", name.c_str());
             }
             blockFill(addr, NUM_BLOCK_FILL, mem);
-            inPenalty = missPenalty;
+            penaltyCounter = missPenalty;
+            inPenalty = true;
             switch(byteOffset % 4){
                 case 0:
-                    ret = (HWL_MASK & sets[idx].data) >> 0;
-                    break;
+                    return (HWL_MASK & sets[idx].data) >> 0;
                 case 1:
                     printf("Halfword addr was not halfword aligned: 0x%X\n", addr);
-                    ret = (HWL_MASK & sets[idx].data) >> 0;
-                    break;
+                    return (HWL_MASK & sets[idx].data) >> 0;
                 case 2:
-                    ret = (HWH_MASK & sets[idx].data) >> 16;
-                    break;
+                    return (HWH_MASK & sets[idx].data) >> 16;
                 case 3:
                     printf("Halfword addr was not halfword aligned: 0x%X\n", addr);
-                    ret = (HWH_MASK & sets[idx].data) >> 16;
-                    break;
+                    return (HWH_MASK & sets[idx].data) >> 16;
                 default:
                     printf("Halfword addr was not halfword aligned: 0x%X\n", addr);
-                    break;
+                    return (HWL_MASK & sets[idx].data) >> 0;
             }
-            haultPipeline = true;
-            return false;
         }
     }
     else{
         if (debug){
-            printf("%s: Miss! At Penalty = %i\n\n", name.c_str(), inPenalty);
+            printf("%s: Miss! At Penalty = %i\n\n", name.c_str(), penaltyCounter);
         }
-        inPenalty--;
-        if (!inPenalty){
+        penaltyCounter--;
+        if (penaltyCounter == 0){
             if (debug){
                 printf("%s: Penalty over. Validating lines for next request.\n\n", name.c_str());
             }
             validateBlocks(addr, NUM_BLOCK_FILL);
         }
+        inPenalty = true;
         switch(byteOffset % 4){
             case 0:
-                ret = (HWL_MASK & sets[idx].data) >> 0;
-                break;
+                return (HWL_MASK & sets[idx].data) >> 0;
             case 1:
                 printf("Halfword addr was not halfword aligned: 0x%X\n", addr);
-                ret = (HWL_MASK & sets[idx].data) >> 0;
-                break;
+                return (HWL_MASK & sets[idx].data) >> 0;
             case 2:
-                ret = (HWH_MASK & sets[idx].data) >> 16;
-                break;
+                return (HWH_MASK & sets[idx].data) >> 16;
             case 3:
                 printf("Halfword addr was not halfword aligned: 0x%X\n", addr);
-                ret = (HWH_MASK & sets[idx].data) >> 16;
-                break;
+                return (HWH_MASK & sets[idx].data) >> 16;
             default:
                 printf("Halfword addr was not halfword aligned: 0x%X\n", addr);
-                break;
+                return (HWL_MASK & sets[idx].data) >> 0;
         }
-        haultPipeline = true;
-        return false;
     }
 }
-bool Cache::storeHWU(unsigned int dataHW, unsigned int addr, Memory &mem){
+
+int Cache::loadHW(unsigned int addr, Memory &mem){
+    unsigned int data;
+    
+    data = loadHWU(addr, mem);
+    
+    if (data >= 0x8000){
+        return (0xFFFF0000 | data);
+    }
+    else{
+        return data;
+    }
+    
+}
+
+unsigned int Cache::loadBU(unsigned int addr, Memory &mem){
+    unsigned int idx;
+    unsigned int tag;
+    unsigned int blockOffset;
+    unsigned int byteOffset;
+    unsigned int ret;
+    
+    decodeCacheAddr(tag, idx, blockOffset, byteOffset, addr);
+    
+    // Are we penaltyCounter?
+    // No
+    //   Is the data valid with correct tag?
+    //   Yes
+    //     return the data and true
+    //   No
+    //     load the data into the iCache
+    //     start the penaltyCounter Counter
+    //     return the data at block idx and false
+    // Yes
+    //   Decrement the penaltyCounter Counter
+    //   After decrementing, is the penaltyCounter Counter now 0?
+    //   Yes
+    //     set the loaded data valid bits true
+    //     so that next time, we return valid data
+    //   return the data at block idx and false
+    
+    if (penaltyCounter == 0){
+        if (sets[idx].valid && (sets[idx].tag == tag)){
+            if (debug){
+                printf("%s: Hit!\n\n", name.c_str());
+            }
+            inPenalty = false;
+            switch(byteOffset % 4){
+                case 0:
+                    return (BYTE0_MASK & sets[idx].data) >> 0;
+                case 1:
+                    return (BYTE1_MASK & sets[idx].data) >> 8;
+                case 2:
+                    return (BYTE2_MASK & sets[idx].data) >> 16;
+                case 3:
+                    return (BYTE3_MASK & sets[idx].data) >> 24;
+                default:
+                    return (BYTE0_MASK & sets[idx].data) >> 0;
+            }
+        }
+        else{
+            if (debug){
+                printf("%s: Miss! Block filling and starting penalty.\n\n", name.c_str());
+            }
+            blockFill(addr, NUM_BLOCK_FILL, mem);
+            penaltyCounter = missPenalty;
+            inPenalty = true;
+
+            switch(byteOffset % 4){
+                case 0:
+                    return (BYTE0_MASK & sets[idx].data) >> 0;
+                case 1:
+                    return (BYTE1_MASK & sets[idx].data) >> 8;
+                case 2:
+                    return (BYTE2_MASK & sets[idx].data) >> 16;
+                case 3:
+                    return (BYTE3_MASK & sets[idx].data) >> 24;
+                default:
+                    return (BYTE0_MASK & sets[idx].data) >> 0;
+            }
+        }
+    }
+    else{
+        if (debug){
+            printf("%s: Miss! At Penalty = %i\n\n", name.c_str(), penaltyCounter);
+        }
+        penaltyCounter--;
+        if (penaltyCounter == 0){
+            if (debug){
+                printf("%s: Penalty over. Validating lines for next request.\n\n", name.c_str());
+            }
+            validateBlocks(addr, NUM_BLOCK_FILL);
+        }
+        inPenalty = true;
+        switch(byteOffset % 4){
+            case 0:
+                return (BYTE0_MASK & sets[idx].data) >> 0;
+            case 1:
+                return (BYTE1_MASK & sets[idx].data) >> 8;
+            case 2:
+                return (BYTE2_MASK & sets[idx].data) >> 16;
+            case 3:
+                return (BYTE3_MASK & sets[idx].data) >> 24;
+            default:
+                return (BYTE0_MASK & sets[idx].data) >> 0;
+        }
+    }
+}
+
+int Cache::loadB(unsigned int addr, Memory &mem){
+    unsigned int data;
+    
+    data = loadBU(addr, mem);
+    
+    if (data >= 0x8000){
+        return (0xFFFF0000 | data);
+    }
+    else{
+        return data;
+    }
+}
+
+void Cache::storeW(unsigned int dataW, unsigned int addr, Memory &mem){
     unsigned int idx;
     unsigned int tag;
     unsigned int blockOffset;
@@ -285,7 +331,7 @@ bool Cache::storeHWU(unsigned int dataHW, unsigned int addr, Memory &mem){
     
     decodeCacheAddr(tag, idx, blockOffset, byteOffset, addr);
     
-    // Are we inPenalty?
+    // Are we penaltyCounter?
     // No
     //   Is the data at idx valid and have the correct tag?
     //   Yes
@@ -296,14 +342,75 @@ bool Cache::storeHWU(unsigned int dataHW, unsigned int addr, Memory &mem){
     //     Then update the data with dataW
     //     Start Penalty
     // Yes
-    //   Decrement the inPenalty Counter
-    //   After decrementing, is the inPenalty Counter now 0?
+    //   Decrement the penaltyCounter Counter
+    //   After decrementing, is the penaltyCounter Counter now 0?
     //   Yes
     //     validate the loaded data, so that next time
     //     we update the data with dataW
     //   return false
     
-    if (!inPenalty){
+    if (penaltyCounter == 0){
+        if (sets[idx].valid && (sets[idx].tag == tag)){
+            if (debug){
+                printf("%s: Hit!\n\n", name.c_str());
+            }
+            sets[idx].data = dataW;
+            inPenalty = false;
+            return;
+        }
+        else{
+            if (debug){
+                printf("%s: Miss! Block filling and starting penalty.\n\n",name.c_str());
+            }
+            blockFill(addr, NUM_BLOCK_FILL, mem);
+            penaltyCounter = missPenalty;
+            inPenalty = true;
+            return;
+        }
+    }
+    else{
+        if (debug){
+            printf("%s: Miss! At Penalty = %i\n\n", name.c_str(), penaltyCounter);
+        }
+        penaltyCounter--;
+        if (penaltyCounter == 0){
+            if (debug){
+                printf("%s: Penalty over. Validating lines for next request.\n\n", name.c_str());
+            }
+            validateBlocks(addr, NUM_BLOCK_FILL);
+        }
+        inPenalty = true;
+        return;
+    }
+}
+
+void Cache::storeHW(unsigned int dataHW, unsigned int addr, Memory &mem){
+    unsigned int idx;
+    unsigned int tag;
+    unsigned int blockOffset;
+    unsigned int byteOffset;
+    
+    decodeCacheAddr(tag, idx, blockOffset, byteOffset, addr);
+    
+    // Are we penaltyCounter?
+    // No
+    //   Is the data at idx valid and have the correct tag?
+    //   Yes
+    //     Update the data with dataW
+    //   No
+    //     We need to store valid data in fill range
+    //     Bring in new blocks
+    //     Then update the data with dataW
+    //     Start Penalty
+    // Yes
+    //   Decrement the penaltyCounter Counter
+    //   After decrementing, is the penaltyCounter Counter now 0?
+    //   Yes
+    //     validate the loaded data, so that next time
+    //     we update the data with dataW
+    //   return false
+    
+    if (penaltyCounter == 0){
         if (sets[idx].valid && (sets[idx].tag == tag)){
             if (debug){
                 printf("%s: Hit!\n\n", name.c_str());
@@ -328,36 +435,36 @@ bool Cache::storeHWU(unsigned int dataHW, unsigned int addr, Memory &mem){
                     printf("Halfword addr was not halfword aligned: 0x%X\n", addr);
                     break;
             }
-            haultPipeline = false;
-            return true;
+            inPenalty = false;
+            return;
         }
         else{
             if (debug){
                 printf("%s: Miss! Block filling and starting penalty.\n\n",name.c_str());
             }
             blockFill(addr, NUM_BLOCK_FILL, mem);
-            inPenalty = missPenalty;
-            haultPipeline = true;
-            return false;
+            penaltyCounter = missPenalty;
+            inPenalty = true;
+            return;
         }
     }
     else{
         if (debug){
-            printf("%s: Miss! At Penalty = %i\n\n", name.c_str(), inPenalty);
+            printf("%s: Miss! At Penalty = %i\n\n", name.c_str(), penaltyCounter);
         }
-        inPenalty--;
-        if (!inPenalty){
+        penaltyCounter--;
+        if (penaltyCounter == 0){
             if (debug){
                 printf("%s: Penalty over. Validating lines for next request.\n\n", name.c_str());
             }
             validateBlocks(addr, NUM_BLOCK_FILL);
         }
-        haultPipeline = true;
-        return false;
+        inPenalty = true;
+        return;
     }
 }
 
-bool Cache::loadBU(unsigned int &ret, unsigned int addr, Memory &mem){
+void Cache::storeB(unsigned int dataB, unsigned int addr, Memory &mem){
     unsigned int idx;
     unsigned int tag;
     unsigned int blockOffset;
@@ -365,113 +472,7 @@ bool Cache::loadBU(unsigned int &ret, unsigned int addr, Memory &mem){
     
     decodeCacheAddr(tag, idx, blockOffset, byteOffset, addr);
     
-    // Are we inPenalty?
-    // No
-    //   Is the data valid with correct tag?
-    //   Yes
-    //     return the data and true
-    //   No
-    //     load the data into the iCache
-    //     start the inPenalty Counter
-    //     return the data at block idx and false
-    // Yes
-    //   Decrement the inPenalty Counter
-    //   After decrementing, is the inPenalty Counter now 0?
-    //   Yes
-    //     set the loaded data valid bits true
-    //     so that next time, we return valid data
-    //   return the data at block idx and false
-    
-    if (!inPenalty){
-        if (sets[idx].valid && (sets[idx].tag == tag)){
-            if (debug){
-                printf("%s: Hit!\n\n", name.c_str());
-            }
-            switch(byteOffset % 4){
-                case 0:
-                    ret = (BYTE0_MASK & sets[idx].data) >> 0;
-                    break;
-                case 1:
-                    ret = (BYTE1_MASK & sets[idx].data) >> 8;
-                    break;
-                case 2:
-                    ret = (BYTE2_MASK & sets[idx].data) >> 16;
-                    break;
-                case 3:
-                    ret = (BYTE3_MASK & sets[idx].data) >> 24;
-                    break;
-                default:
-                    break;
-            }
-            haultPipeline = false;
-            return true;
-        }
-        else{
-            if (debug){
-                printf("%s: Miss! Block filling and starting penalty.\n\n", name.c_str());
-            }
-            blockFill(addr, NUM_BLOCK_FILL, mem);
-            inPenalty = missPenalty;
-            switch(byteOffset % 4){
-                case 0:
-                    ret = (BYTE0_MASK & sets[idx].data) >> 0;
-                    break;
-                case 1:
-                    ret = (BYTE1_MASK & sets[idx].data) >> 8;
-                    break;
-                case 2:
-                    ret = (BYTE2_MASK & sets[idx].data) >> 16;
-                    break;
-                case 3:
-                    ret = (BYTE3_MASK & sets[idx].data) >> 24;
-                    break;
-                default:
-                    break;
-            }
-            haultPipeline = true;
-            return false;
-        }
-    }
-    else{
-        if (debug){
-            printf("%s: Miss! At Penalty = %i\n\n", name.c_str(), inPenalty);
-        }
-        inPenalty--;
-        if (!inPenalty){
-            if (debug){
-                printf("%s: Penalty over. Validating lines for next request.\n\n", name.c_str());
-            }
-            validateBlocks(addr, NUM_BLOCK_FILL);
-        }
-        switch(byteOffset % 4){
-            case 0:
-                ret = (BYTE0_MASK & sets[idx].data) >> 0;
-                break;
-            case 1:
-                ret = (BYTE1_MASK & sets[idx].data) >> 8;
-                break;
-            case 2:
-                ret = (BYTE2_MASK & sets[idx].data) >> 16;
-                break;
-            case 3:
-                ret = (BYTE3_MASK & sets[idx].data) >> 24;
-                break;
-            default:
-                break;
-        }
-        haultPipeline = true;
-        return false;
-    }
-}
-bool Cache::storeBU(unsigned int dataB, unsigned int addr, Memory &mem){
-    unsigned int idx;
-    unsigned int tag;
-    unsigned int blockOffset;
-    unsigned int byteOffset;
-    
-    decodeCacheAddr(tag, idx, blockOffset, byteOffset, addr);
-    
-    // Are we inPenalty?
+    // Are we penaltyCounter?
     // No
     //   Is the data at idx valid and have the correct tag?
     //   Yes
@@ -482,14 +483,14 @@ bool Cache::storeBU(unsigned int dataB, unsigned int addr, Memory &mem){
     //     Then update the data with dataW
     //     Start Penalty
     // Yes
-    //   Decrement the inPenalty Counter
-    //   After decrementing, is the inPenalty Counter now 0?
+    //   Decrement the penaltyCounter Counter
+    //   After decrementing, is the penaltyCounter Counter now 0?
     //   Yes
     //     validate the loaded data, so that next time
     //     we update the data with dataW
     //   return false
     
-    if (!inPenalty){
+    if (penaltyCounter == 0){
         if (sets[idx].valid && (sets[idx].tag == tag)){
             if (debug){
                 printf("%s: Hit!\n\n", name.c_str());
@@ -511,32 +512,32 @@ bool Cache::storeBU(unsigned int dataB, unsigned int addr, Memory &mem){
                 default:
                     break;
             }
-            haultPipeline = false;
-            return true;
+            inPenalty = false;
+            return;
         }
         else{
             if (debug){
                 printf("%s: Miss! Block filling and starting penalty.\n\n",name.c_str());
             }
             blockFill(addr, NUM_BLOCK_FILL, mem);
-            inPenalty = missPenalty;
-            haultPipeline = true;
-            return false;
+            penaltyCounter = missPenalty;
+            inPenalty = true;
+            return;
         }
     }
     else{
         if (debug){
-            printf("%s: Miss! At Penalty = %i\n\n", name.c_str(), inPenalty);
+            printf("%s: Miss! At Penalty = %i\n\n", name.c_str(), penaltyCounter);
         }
-        inPenalty--;
-        if (!inPenalty){
+        penaltyCounter--;
+        if (penaltyCounter == 0){
             if (debug){
                 printf("%s: Penalty over. Validating lines for next request.\n\n", name.c_str());
             }
             validateBlocks(addr, NUM_BLOCK_FILL);
         }
-        haultPipeline = true;
-        return false;
+        inPenalty = true;
+        return;
     }
 }
 

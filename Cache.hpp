@@ -37,8 +37,8 @@ public:
     int numSets;
     int setSize;
     int missPenalty;
-    int inPenalty;
-    bool haultPipeline;
+    int penaltyCounter;
+    bool inPenalty;
     
 private:
     string name;
@@ -56,21 +56,19 @@ private:
 public:
     Cache();
     Cache(int nSets, int bSize, int penalty, Memory &mem, string nm);
-    bool loadW(unsigned int &ret, unsigned int addr, Memory &mem);
-    bool storeW(unsigned int dataW, unsigned int addr, Memory &mem);
-    bool loadHWU(unsigned int &ret, unsigned int addr, Memory &mem);
-    bool storeHWU(unsigned int dataHW, unsigned int addr, Memory &mem);
-    bool loadBU(unsigned int &ret, unsigned int addr, Memory &mem);
-    bool storeBU(unsigned int dataB, unsigned int addr, Memory &mem);
+    unsigned int loadW(unsigned int addr, Memory &mem);
+    unsigned int loadHWU(unsigned int addr, Memory &mem);
+    int loadHW(unsigned int addr, Memory &mem);
+    unsigned int loadBU(unsigned int addr, Memory &mem);
+    int loadB(unsigned int addr, Memory &mem);
+    void storeW(unsigned int dataW, unsigned int addr, Memory &mem);
+    void storeHW(unsigned int dataHW, unsigned int addr, Memory &mem);
+    void storeB(unsigned int dataB, unsigned int addr, Memory &mem);
     void flush();
     void print();
 private:
     void blockFill(unsigned int addr, unsigned int nSets, Memory mem);
     void validateBlocks(unsigned int addr, unsigned int nSets);
-    unsigned int getTag(unsigned int addr);
-    unsigned int getIdx(unsigned int addr);
-    unsigned int getByteOffset(unsigned int addr);
-    
     void decodeCacheAddr(unsigned int &tag, unsigned int &idx, unsigned int &blkOffset, unsigned int &bOffset, unsigned int addr);
     unsigned int encodeCacheAddr(unsigned int tag, unsigned int idx, unsigned int blkOffset, unsigned int bOffset);
     
