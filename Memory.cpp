@@ -89,7 +89,7 @@ void Memory::storeHW(unsigned int dataHW, unsigned int addr, int offset){
     return;
 }
 
-unsigned int Memory::loadB(unsigned int addr, int offset){
+unsigned int Memory::loadBU(unsigned int addr, int offset){
     // Fetch instruction mc from low memory
     addr = addr + offset;
     int memIdx = addr2idx(addr);
@@ -112,7 +112,7 @@ unsigned int Memory::loadB(unsigned int addr, int offset){
     return mem[memIdx];
 }
 
-void Memory::storeB(unsigned int dataB, unsigned int addr, int offset){
+void Memory::storeBU(unsigned int dataB, unsigned int addr, int offset){
     // Store instruction mc in low memory
     addr = addr + offset;
     int memIdx = addr2idx(addr);

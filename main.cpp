@@ -17,6 +17,8 @@ using namespace std;
 
 #define R   "R"
 #define LW  "LW"
+#define LB "LB"
+#define LH "LH"
 #define LHU  "LHU"
 #define LBU  "LBU"
 #define SW  "SW"
@@ -24,7 +26,7 @@ using namespace std;
 #define BEQ "BEQ"
 #define J   "J"
 #define I   "I"
-#define MEMORYFILENAME "Regression-Testing/lhu_test.txt"
+#define MEMORYFILENAME "Regression-Testing/lh_test.txt"
 
 
 // Memory
@@ -148,6 +150,12 @@ Instruction decode(unsigned int mc){
         case 0x0:
             myInstr.type = R;
             break;
+        case 0x20:
+            myInstr.type = LB;
+            break;
+        case 0x21:
+            myInstr.type = LH;
+            break;
         case 0x23:
             myInstr.type = LW;
             break;
@@ -196,7 +204,7 @@ void IF(){
     
     //Computing Branch Target and Branch indicator (PCSrc)
     if (ifid.instr.immed >= 0x8000){
-        branchTarget = ((ifid.instr.immed + 0xFFFF0000) << 2) + ifid.pcnext;
+        branchTarget = ((ifid.instr.immed | 0xFFFF0000) << 2) + ifid.pcnext;
     }
     else{
         branchTarget = ((ifid.instr.immed) << 2) + ifid.pcnext;
@@ -262,7 +270,7 @@ void ID(){
         idex_buff.regWrite = true;
         idex_buff.memToReg = false;
     }
-    else if (!ifid.instr.type.compare(LW) || !ifid.instr.type.compare(LBU) || !ifid.instr.type.compare(LHU)){
+    else if (!ifid.instr.type.compare(LW) || !ifid.instr.type.compare(LB) || !ifid.instr.type.compare(LH) || !ifid.instr.type.compare(LBU) || !ifid.instr.type.compare(LHU)){
         idex_buff.regDst = false;
         idex_buff.ALUOp0 = false;
         idex_buff.ALUOp1 = false;
@@ -525,22 +533,6 @@ void EX(){
     else if (!idex.ALUOp1 && !idex.ALUOp0){
         // LW and SW instructions
         ALUControl = 0x2;
-        switch (idex.instr.opcode) {
-            case 0x23:
-                // lw
-                break;
-            case 0x24:
-                //lbu
-                break;
-            case 0x25:
-                //lhu
-                break;
-            case 0x28:
-                //sb
-                break;
-            default:
-                break;
-        }
     }
     else if (!idex.ALUOp1 && idex.ALUOp0){
         // BEQ instructions
@@ -675,23 +667,38 @@ void MEM(){
     
     if (exmem.memRead && !exmem.memWrite){
         if (!exmem.instr.type.compare(LBU)){
-            //memwb_buff.memReadData = memory.loadB(exmem.ALUResult, exmem.instr.immed);
-            //memwb_buff.memReadData = dcache.loadB(exmem.ALUResult, exmem.instr.immed);
-            dCacheLoadDataValid = dcache.loadB(dCacheData, exmem.ALUResult, memory);
+            dCacheLoadDataValid = dcache.loadBU(dCacheData, exmem.ALUResult, memory);
+            if (dCacheLoadDataValid){
+                memwb_buff.memReadData = dCacheData;
+            }
+        }
+        else if (!exmem.instr.type.compare(LB)){
+            dCacheLoadDataValid = dcache.loadBU(dCacheData, exmem.ALUResult, memory);
+            // sign-extending the unsigned byte
+            if (dCacheData >= 0x80){
+                dCacheData = (dCacheData | 0xFFFFFF00);
+            }
             if (dCacheLoadDataValid){
                 memwb_buff.memReadData = dCacheData;
             }
         }
         else if (!exmem.instr.type.compare(LHU)){
-            //memwb_buff.memReadData = memory.loadHW(exmem.ALUResult, exmem.instr.immed);
-            //memwb_buff.memReadData = dcache.loadHW(exmem.ALUResult, exmem.instr.immed);
-            dCacheLoadDataValid = dcache.loadHW(dCacheData, exmem.ALUResult, memory);
+            dCacheLoadDataValid = dcache.loadHWU(dCacheData, exmem.ALUResult, memory);
+            if (dCacheLoadDataValid){
+                memwb_buff.memReadData = dCacheData;
+            }
+        }
+        else if (!exmem.instr.type.compare(LH)){
+            dCacheLoadDataValid = dcache.loadHWU(dCacheData, exmem.ALUResult, memory);
+            // sign-extending the unsigned byte
+            if (dCacheData >= 0x8000){
+                dCacheData = (dCacheData | 0xFFFF0000);
+            }
             if (dCacheLoadDataValid){
                 memwb_buff.memReadData = dCacheData;
             }
         }
         else{
-            //memwb_buff.memReadData = memory.loadW(exmem.ALUResult);
             dCacheLoadDataValid = dcache.loadW(dCacheData, exmem.ALUResult, memory);
             if (dCacheLoadDataValid){
                 memwb_buff.memReadData = dCacheData;
@@ -701,7 +708,7 @@ void MEM(){
     else if (!exmem.memRead && exmem.memWrite){
         memwb_buff.memReadData = 0x0;
         if (!exmem.instr.type.compare(SB)){
-            memory.storeB(exmem.memWriteData, exmem.ALUResult, exmem.instr.immed);
+            memory.storeBU(exmem.memWriteData, exmem.ALUResult, exmem.instr.immed);
 
         }
         else{

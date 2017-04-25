@@ -58,10 +58,10 @@ public:
     Cache(int nSets, int bSize, int penalty, Memory &mem, string nm);
     bool loadW(unsigned int &ret, unsigned int addr, Memory &mem);
     bool storeW(unsigned int dataW, unsigned int addr, Memory &mem);
-    bool loadHW(unsigned int &ret, unsigned int addr, Memory &mem);
-    bool storeHW(unsigned int dataHW, unsigned int addr, Memory &mem);
-    bool loadB(unsigned int &ret, unsigned int addr, Memory &mem);
-    bool storeB(unsigned int dataB, unsigned int addr, Memory &mem);
+    bool loadHWU(unsigned int &ret, unsigned int addr, Memory &mem);
+    bool storeHWU(unsigned int dataHW, unsigned int addr, Memory &mem);
+    bool loadBU(unsigned int &ret, unsigned int addr, Memory &mem);
+    bool storeBU(unsigned int dataB, unsigned int addr, Memory &mem);
     void flush();
     void print();
 private:

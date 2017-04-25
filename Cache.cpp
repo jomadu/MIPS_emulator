@@ -162,7 +162,7 @@ bool Cache::storeW(unsigned int dataW, unsigned int addr, Memory &mem){
     }
 }
 
-bool Cache::loadHW(unsigned int &ret, unsigned int addr, Memory &mem){
+bool Cache::loadHWU(unsigned int &ret, unsigned int addr, Memory &mem){
     unsigned int idx;
     unsigned int tag;
     unsigned int blockOffset;
@@ -277,7 +277,7 @@ bool Cache::loadHW(unsigned int &ret, unsigned int addr, Memory &mem){
         return false;
     }
 }
-bool Cache::storeHW(unsigned int dataHW, unsigned int addr, Memory &mem){
+bool Cache::storeHWU(unsigned int dataHW, unsigned int addr, Memory &mem){
     unsigned int idx;
     unsigned int tag;
     unsigned int blockOffset;
@@ -357,7 +357,7 @@ bool Cache::storeHW(unsigned int dataHW, unsigned int addr, Memory &mem){
     }
 }
 
-bool Cache::loadB(unsigned int &ret, unsigned int addr, Memory &mem){
+bool Cache::loadBU(unsigned int &ret, unsigned int addr, Memory &mem){
     unsigned int idx;
     unsigned int tag;
     unsigned int blockOffset;
@@ -463,7 +463,7 @@ bool Cache::loadB(unsigned int &ret, unsigned int addr, Memory &mem){
         return false;
     }
 }
-bool Cache::storeB(unsigned int dataB, unsigned int addr, Memory &mem){
+bool Cache::storeBU(unsigned int dataB, unsigned int addr, Memory &mem){
     unsigned int idx;
     unsigned int tag;
     unsigned int blockOffset;
