@@ -44,11 +44,19 @@ unsigned int Memory::loadHW(unsigned int addr, int offset){
         case 0:
             return (mem[memIdx] & HWL_MASK) >> 0;
             break;
+        case 1:
+            printf("Halfword addr was not halfword aligned: 0x%X\n", addr);
+            return (mem[memIdx] & HWL_MASK) >> 0;
+            break;
         case 2:
             return (mem[memIdx] & HWH_MASK) >> 16;
             break;
+        case 3:
+            printf("Halfword addr was not halfword aligned: 0x%X\n", addr);
+            return (mem[memIdx] & HWH_MASK) >> 16;
+            break;
         default:
-            printf("Halfword addr was not halfword aligned: 0x%X", addr);
+            printf("Halfword addr was not halfword aligned: 0x%X\n", addr);
             break;
     }
     return mem[memIdx];
@@ -63,11 +71,19 @@ void Memory::storeHW(unsigned int dataHW, unsigned int addr, int offset){
         case 0:
             mem[memIdx] = (mem[memIdx] & ~HWL_MASK) | (dataHW << 0);
             break;
+        case 1:
+            printf("Halfword addr was not halfword aligned: 0x%X\n", addr);
+            mem[memIdx] = (mem[memIdx] & ~HWL_MASK) | (dataHW << 0);
+            break;
         case 2:
             mem[memIdx] = (mem[memIdx] & ~HWH_MASK) | (dataHW << 16);
             break;
+        case 3:
+            printf("Halfword addr was not halfword aligned: 0x%X\n", addr);
+            mem[memIdx] = (mem[memIdx] & ~HWH_MASK) | (dataHW << 16);
+            break;
         default:
-            printf("Halfword addr was not halfword aligned: 0x%X", addr);
+            printf("Halfword addr was not halfword aligned: 0x%X\n", addr);
             break;
     }
     return;

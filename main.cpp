@@ -24,7 +24,7 @@ using namespace std;
 #define BEQ "BEQ"
 #define J   "J"
 #define I   "I"
-#define MEMORYFILENAME "Regression-Testing/sw_test.txt"
+#define MEMORYFILENAME "Regression-Testing/lhu_test.txt"
 
 
 // Memory
@@ -188,7 +188,7 @@ void loadPR(){
 }
 
 void IF(){
-    bool PCSrc;
+    bool takeBranch;
     bool regFileReadDataCompare;
     bool branchInstrInID;
     unsigned int branchTarget;
@@ -205,10 +205,10 @@ void IF(){
     // Is the branch in ID taken? (PCSrc = true (taken), false (not-taken))
     regFileReadDataCompare = (regFile.readReg(ifid.instr.rs) == regFile.readReg(ifid.instr.rt));
     branchInstrInID = !ifid.instr.type.compare(BEQ); // Compare returns 0 if strings are equal
-    PCSrc = (branchInstrInID && regFileReadDataCompare);
+    takeBranch = (branchInstrInID && regFileReadDataCompare);
     
     // PC input Mux
-    if (PCSrc){
+    if (takeBranch){
         // Branch in ID taken. Next PC is the branch target
         if (!hazardUnit.stall){
             PC = branchTarget;
@@ -296,7 +296,15 @@ void ID(){
         idex_buff.memToReg = false;
     }
     else if (!ifid.instr.type.compare(J)){
-        //TODO: Implement Jump control lines
+        idex_buff.regDst = false;
+        idex_buff.ALUOp0 = false;
+        idex_buff.ALUOp1 = false;
+        idex_buff.ALUSrc = false;
+        idex_buff.branch = false;
+        idex_buff.memRead = false;
+        idex_buff.memWrite = false;
+        idex_buff.regWrite = false;
+        idex_buff.memToReg = false;
     }
     else if (!ifid.instr.type.compare(I)){
         idex_buff.regDst = false;
@@ -523,11 +531,9 @@ void EX(){
                 break;
             case 0x24:
                 //lbu
-                unsignedFlag = true;
                 break;
             case 0x25:
                 //lhu
-                unsignedFlag = true;
                 break;
             case 0x28:
                 //sb
@@ -671,10 +677,18 @@ void MEM(){
         if (!exmem.instr.type.compare(LBU)){
             //memwb_buff.memReadData = memory.loadB(exmem.ALUResult, exmem.instr.immed);
             //memwb_buff.memReadData = dcache.loadB(exmem.ALUResult, exmem.instr.immed);
+            dCacheLoadDataValid = dcache.loadB(dCacheData, exmem.ALUResult, memory);
+            if (dCacheLoadDataValid){
+                memwb_buff.memReadData = dCacheData;
+            }
         }
         else if (!exmem.instr.type.compare(LHU)){
             //memwb_buff.memReadData = memory.loadHW(exmem.ALUResult, exmem.instr.immed);
             //memwb_buff.memReadData = dcache.loadHW(exmem.ALUResult, exmem.instr.immed);
+            dCacheLoadDataValid = dcache.loadHW(dCacheData, exmem.ALUResult, memory);
+            if (dCacheLoadDataValid){
+                memwb_buff.memReadData = dCacheData;
+            }
         }
         else{
             //memwb_buff.memReadData = memory.loadW(exmem.ALUResult);
@@ -733,37 +747,14 @@ void startup(){
     char file [] = MEMORYFILENAME;
     memory.importFile(file, PC);
     ifid.pcnext = PC;
-    icache = Cache(16, 1, 4, memory, "iCache");
-    dcache = Cache(16, 1, 4, memory, "dCache");
+    icache = Cache(16, 1, 2, memory, "iCache");
+    dcache = Cache(16, 1, 2, memory, "dCache");
 }
 int main(int argc, const char * argv[]) {
     startup();
-                         // Instruction         | Instruction       | Instruction       | Instruction       | Instruction       |
-    executeClockCycle(); // IF()                |                   |                   |                   |                   |
-    executeClockCycle(); // ID()                | IF()              |                   |                   |                   |
-    executeClockCycle(); // EX()                | ID()              | IF()              |                   |                   |
-    executeClockCycle(); // MEM()               | EX()              | ID()              | IF()              |                   |
-    executeClockCycle(); // WB()                | MEM()             | EX()              | ID()              | IF()              |
-    executeClockCycle(); //                     | WB()              | MEM()             | EX()              | ID()              |
-    executeClockCycle(); //                     |                   | WB()              | MEM()             | EX()              |
-    executeClockCycle(); //                     |                   |                   | WB()              | MEM()             |
-    executeClockCycle(); //                     |                   |                   |                   | WB()              |
-    executeClockCycle();
-    executeClockCycle(); //
-    executeClockCycle();
-    executeClockCycle();
-    executeClockCycle();
-    executeClockCycle();
-    executeClockCycle();
-    executeClockCycle();
-    executeClockCycle();
-    executeClockCycle();
-    executeClockCycle();
-    executeClockCycle();
-    executeClockCycle();
-    executeClockCycle();
-    
-
+    for (int i = 0; i < 20; i++){
+        executeClockCycle();
+    }
     return 0;
 }
 
