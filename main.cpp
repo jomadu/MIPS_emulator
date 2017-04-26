@@ -27,7 +27,7 @@ using namespace std;
 #define BEQ "BEQ"
 #define J   "J"
 #define I   "I"
-#define MEMORYFILENAME "Regression-Testing/sb_test.txt"
+#define MEMORYFILENAME "Regression-Testing/sw_test_2.txt"
 
 
 // Memory
@@ -744,7 +744,7 @@ void startup(){
 }
 int main(int argc, const char * argv[]) {
     startup();
-    for (int i = 0; i < 20; i++){
+    for (int i = 0; i < 28; i++){
         executeClockCycle();
     }
     return 0;
