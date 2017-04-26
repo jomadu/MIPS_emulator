@@ -1,0 +1,13 @@
+0x20090001  // addi $t1 $zero 1 -> t1 = 1 
+0x200A0005  // addi $t2 $zero 5 -> t2 = 5
+0x200BFFFE  // addi $t3 $zero 0xFFFE -> t3 = 0xFFFFFFFE
+0x200CFFFC  // addi $t4 $zero 0xFFFC -> t4 = 0xFFFFFFFC
+0x2D300000  // sltiu $s0 $t1 0 -> s0 = 0x0
+0x2D510005  // sltiu $s1 $t2 5 -> s1 = 0x0
+0x2D72FFFE  // sltiu $s2 $t3 0xFFFE -> s2 = 0x0
+0x2D93FFFE  // sltiu $s3 $t4 0xFFFE -> s3 = 0x1
+0x2D540007  // sltiu $s4 $t2 7 -> s4 = 0x1
+0x2D750000  // sltiu $s5 $t3 0 -> s5 = 0x0
+0x2C000000  // sltiu $zero $zero $zero -> null
+0x2C000000  // sltiu $zero $zero $zero -> null
+0x2C000000  // sltiu $zero $zero $zero -> null

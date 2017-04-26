@@ -1,0 +1,12 @@
+0x2009FFFF  // addi $t1 $zero 0xFFFF -> t1 = 0xFFFFFFFF
+0x200AAAAA  // addi $t2 $zero 0xAAAA -> t2 = 0xFFFFAAAA
+0x200B5555  // addi $t3 $zero 0x5555 -> t3 = 0x5555
+0x01098025  // or $s0 $t0 $t1 -> s0 = 0xFFFFFFFF
+0x010A8825  // or $s1 $t0 $t2 -> s1 = 0xFFFFAAAA
+0x010B9025  // or $s2 $t0 $t3 -> s2 = 0x5555
+0x012A9825  // or $s3 $t1 $t2 -> s3 = 0xFFFFFFFF
+0x012BA025  // or $s4 $t1 $t3 -> s4 = 0xFFFFFFFF
+0x014BA825  // or $s5 $t2 $t3 -> s0 = 0xFFFFFFFF
+0x00000025  // or $zero $zero $zero
+0x00000025  // or $zero $zero $zero
+0x00000025  // or $zero $zero $zero

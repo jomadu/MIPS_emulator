@@ -1,0 +1,13 @@
+0x20090001  // addi $t1 $zero 1 -> t1 = 1 
+0x200A0005  // addi $t2 $zero 5 -> t2 = 5
+0x200BFFFE  // addi $t3 $zero -2 -> t3 = 0xFFFE (-2)
+0x200CFFFC  // addi $t4 $zero -4 -> t4 = 0xFFFC (-4)
+0x012A802A  // slt $s0 $t1 $t2 -> s0 = 0x1
+0x014B882A  // slt $s1 $t2 $t3 -> s1 = 0x0
+0x018B902A  // slt $s2 $t4 $t3 -> s2 = 0x1
+0x0169982A  // slt $s3 $t3 $t1 -> s3 = 0x1
+0x0149A02A  // slt $s4 $t2 $t1 -> s4 = 0x0
+0x018CA82A  // slt $s5 $t4 $t2 -> s5 = 0x1
+0x0000002A  // slt $zero $zero $zero
+0x0000002A  // slt $zero $zero $zero
+0x0000002A  // slt $zero $zero $zero
