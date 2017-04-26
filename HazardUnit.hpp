@@ -13,6 +13,8 @@
 #include "IDEX_PR.hpp"
 #include "IFID_PR.hpp"
 
+#define BEQ "BEQ"
+
 class HazardUnit{
 public:
     bool stall;
