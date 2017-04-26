@@ -29,46 +29,6 @@ unsigned int Memory::loadW(unsigned int addr){
     return mem[memIdx];
 }
 
-void Memory::storeW(unsigned int dataW, unsigned int addr){
-    // Store instruction mc in low memory
-    int memIdx = addr2idx(addr);
-    mem[memIdx] = dataW;
-    return;
-}
-
-int Memory::loadHW(unsigned int addr){
-    // Fetch instruction mc from low memory
-    unsigned int byteOffset = getByteOffset(addr);
-    int memIdx = addr2idx(addr);
-    unsigned int hw;
-    switch (byteOffset % 4) {
-        case 0:
-            hw = (mem[memIdx] & HWL_MASK) >> 0;
-            break;
-        case 1:
-            printf("Halfword addr was not halfword aligned: 0x%X\n", addr);
-            hw = (mem[memIdx] & HWL_MASK) >> 0;
-            break;
-        case 2:
-            hw = (mem[memIdx] & HWH_MASK) >> 16;
-            break;
-        case 3:
-            printf("Halfword addr was not halfword aligned: 0x%X\n", addr);
-            hw = (mem[memIdx] & HWH_MASK) >> 16;
-            break;
-        default:
-            printf("Halfword addr was not halfword aligned: 0x%X\n", addr);
-            hw = (mem[memIdx] & HWL_MASK) >> 0;
-            break;
-    }
-    if (hw >= 0x8000){
-        return (0xFFFF0000 | hw);
-    }
-    else{
-        return hw;
-    }
-}
-
 unsigned int Memory::loadHWU(unsigned int addr){
     // Fetch instruction mc from low memory
     unsigned int byteOffset = getByteOffset(addr);
@@ -90,36 +50,22 @@ unsigned int Memory::loadHWU(unsigned int addr){
             break;
         default:
             printf("Halfword addr was not halfword aligned: 0x%X\n", addr);
+            return (mem[memIdx] & HWL_MASK) >> 0;
             break;
     }
-    return mem[memIdx];
 }
 
-void Memory::storeHW(unsigned int dataHW, unsigned int addr, int offset){
-    // Store instruction mc in low memory
-    addr = addr + offset;
-    int memIdx = addr2idx(addr);
+int Memory::loadHW(unsigned int addr){
+    unsigned int data;
     
-    switch (offset % 4) {
-        case 0:
-            mem[memIdx] = (mem[memIdx] & ~HWL_MASK) | (dataHW << 0);
-            break;
-        case 1:
-            printf("Halfword addr was not halfword aligned: 0x%X\n", addr);
-            mem[memIdx] = (mem[memIdx] & ~HWL_MASK) | (dataHW << 0);
-            break;
-        case 2:
-            mem[memIdx] = (mem[memIdx] & ~HWH_MASK) | (dataHW << 16);
-            break;
-        case 3:
-            printf("Halfword addr was not halfword aligned: 0x%X\n", addr);
-            mem[memIdx] = (mem[memIdx] & ~HWH_MASK) | (dataHW << 16);
-            break;
-        default:
-            printf("Halfword addr was not halfword aligned: 0x%X\n", addr);
-            break;
+    data = loadHWU(addr);
+    
+    if (data >= 0x8000){
+        return (0xFFFF0000 | data);
     }
-    return;
+    else{
+        return data;
+    }
 }
 
 unsigned int Memory::loadBU(unsigned int addr){
@@ -146,56 +92,73 @@ unsigned int Memory::loadBU(unsigned int addr){
 }
 
 int Memory::loadB(unsigned int addr){
-    // Fetch instruction mc from low memory
-    unsigned int byteOffset = getByteOffset(addr);
-    int memIdx = addr2idx(addr);
-    unsigned int b;
+    unsigned int data;
     
-    switch (byteOffset % 4) {
-        case 0:
-            b = (mem[memIdx] & BYTE0_MASK) >> 0;
-            break;
-        case 1:
-            b = (mem[memIdx] & BYTE1_MASK) >> 8;
-            break;
-        case 2:
-            b = (mem[memIdx] & BYTE2_MASK) >> 16;
-            break;
-        case 3:
-            b = (mem[memIdx] & BYTE3_MASK) >> 24;
-            break;
-        default:
-            printf("Math is broken.");
-            b = (mem[memIdx] & BYTE0_MASK) >> 0;
-            break;
-    }
-    if (b >= 0x80){
-        return (0xFFFFFF00 | b);
+    data = loadBU(addr);
+    
+    if (data >= 0x8000){
+        return (0xFFFF0000 | data);
     }
     else{
-        return b;
+        return data;
     }
 }
 
-void Memory::storeBU(unsigned int dataB, unsigned int addr){
+void Memory::storeW(unsigned int dataW, unsigned int addr){
+    // Store instruction mc in low memory
+    int memIdx = addr2idx(addr);
+    mem[memIdx] = dataW;
+    return;
+}
+
+void Memory::storeHW(unsigned int dataHW, unsigned int addr, int offset){
+    // Store instruction mc in low memory
+    addr = addr + offset;
+    int memIdx = addr2idx(addr);
+    
+    switch (offset % 4) {
+        case 0:
+            mem[memIdx] = (mem[memIdx] & HWH_MASK) | (dataHW & HWL_MASK);
+            break;
+        case 1:
+            printf("Halfword addr was not halfword aligned: 0x%X\n", addr);
+            mem[memIdx] = (mem[memIdx] & HWH_MASK) | (dataHW & HWL_MASK);
+            break;
+        case 2:
+            mem[memIdx] = ((dataHW & HWL_MASK) << 16) | (mem[memIdx] & HWL_MASK);
+            break;
+        case 3:
+            printf("Halfword addr was not halfword aligned: 0x%X\n", addr);
+            mem[memIdx] = ((dataHW & HWL_MASK) << 16) | (mem[memIdx] & HWL_MASK);
+            break;
+        default:
+            printf("Halfword addr was not halfword aligned: 0x%X\n", addr);
+            mem[memIdx] = (mem[memIdx] & HWH_MASK) | (dataHW & HWL_MASK);
+            break;
+    }
+    return;
+}
+
+void Memory::storeB(unsigned int dataB, unsigned int addr){
     // Store instruction mc in low memory
     unsigned int byteOffset = getByteOffset(addr);
     int memIdx = addr2idx(addr);
     
     switch (byteOffset % 4) {
         case 0:
-            mem[memIdx] = (mem[memIdx] & ~BYTE0_MASK) | (dataB << 0);
+            mem[memIdx] = (mem[memIdx] & 0xFFFFFF00) | (dataB & BYTE0_MASK);
             break;
         case 1:
-            mem[memIdx] = (mem[memIdx] & ~BYTE1_MASK) | (dataB << 8);
+            mem[memIdx] = (mem[memIdx] & 0xFFFF00FF) | ((dataB & BYTE0_MASK) << 8);
             break;
         case 2:
-            mem[memIdx] = (mem[memIdx] & ~BYTE2_MASK) | (dataB << 16);
+            mem[memIdx] = (mem[memIdx] & 0xFF00FFFF) | ((dataB & BYTE0_MASK) << 16);
             break;
         case 3:
-            mem[memIdx] = (mem[memIdx] & ~BYTE3_MASK) | (dataB << 24);
+            mem[memIdx] = (mem[memIdx] & 0x00FFFFFF) | ((dataB & BYTE0_MASK) << 24);
             break;
         default:
+            mem[memIdx] = (mem[memIdx] & 0xFFFFFF00) | (dataB & BYTE0_MASK);
             break;
     }
     return;

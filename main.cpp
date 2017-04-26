@@ -27,7 +27,7 @@ using namespace std;
 #define BEQ "BEQ"
 #define J   "J"
 #define I   "I"
-#define MEMORYFILENAME "Regression-Testing/lh_test.txt"
+#define MEMORYFILENAME "Regression-Testing/sb_test.txt"
 
 
 // Memory
@@ -693,6 +693,9 @@ void MEM(){
         memwb_buff.memReadData = 0x0;
         if (!exmem.instr.type.compare(SB)){
             dcache.storeB(exmem.memWriteData, exmem.ALUResult, memory);
+        }
+        else if (!exmem.instr.type.compare(SH)){
+            dcache.storeHW(exmem.memWriteData, exmem.ALUResult, memory);
         }
         else{
             dcache.storeW(exmem.memWriteData, exmem.ALUResult, memory);

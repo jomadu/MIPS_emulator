@@ -389,6 +389,7 @@ void Cache::storeHW(unsigned int dataHW, unsigned int addr, Memory &mem){
     unsigned int tag;
     unsigned int blockOffset;
     unsigned int byteOffset;
+    unsigned int hw;
     
     decodeCacheAddr(tag, idx, blockOffset, byteOffset, addr);
     
@@ -418,21 +419,22 @@ void Cache::storeHW(unsigned int dataHW, unsigned int addr, Memory &mem){
             
             switch(byteOffset % 4){
                 case 0:
-                    sets[idx].data = (HWL_MASK & dataHW) >> 0;
+                    sets[idx].data = (sets[idx].data & HWH_MASK) | (dataHW & HWL_MASK);
                     break;
                 case 1:
                     printf("Halfword addr was not halfword aligned: 0x%X\n", addr);
-                    sets[idx].data = (HWL_MASK & dataHW) >> 0;
+                    sets[idx].data = (sets[idx].data & HWH_MASK) | (dataHW & HWL_MASK);
                     break;
                 case 2:
-                    sets[idx].data = (HWH_MASK & dataHW) >> 16;
+                    sets[idx].data = ((dataHW & HWL_MASK) << 16) | (sets[idx].data & HWL_MASK);
                     break;
                 case 3:
                     printf("Halfword addr was not halfword aligned: 0x%X\n", addr);
-                    sets[idx].data = (HWH_MASK & dataHW) >> 16;
+                    sets[idx].data = ((dataHW & HWL_MASK) << 16) | (sets[idx].data & HWL_MASK);
                     break;
                 default:
                     printf("Halfword addr was not halfword aligned: 0x%X\n", addr);
+                    sets[idx].data = (sets[idx].data & HWH_MASK) | (dataHW & HWL_MASK);
                     break;
             }
             inPenalty = false;
@@ -498,16 +500,16 @@ void Cache::storeB(unsigned int dataB, unsigned int addr, Memory &mem){
             
             switch(byteOffset % 4){
                 case 0:
-                    sets[idx].data = (BYTE0_MASK & dataB) >> 0;
+                    sets[idx].data = (sets[idx].data & 0xFFFFFF00) | (dataB & BYTE0_MASK);
                     break;
                 case 1:
-                    sets[idx].data = (BYTE1_MASK & dataB) >> 8;
+                    sets[idx].data = (sets[idx].data & 0xFFFF00FF) | ((dataB & BYTE0_MASK) << 8);
                     break;
                 case 2:
-                    sets[idx].data = (BYTE2_MASK & dataB) >> 16;
+                    sets[idx].data = (sets[idx].data & 0xFF00FFFF) | ((dataB & BYTE0_MASK) << 16);
                     break;
                 case 3:
-                    sets[idx].data = (BYTE3_MASK & dataB) >> 24;
+                    sets[idx].data = (sets[idx].data & 0x00FFFFFF) | ((dataB & BYTE0_MASK) << 24);
                     break;
                 default:
                     break;
@@ -584,20 +586,23 @@ void Cache::flush(){
 }
 
 void Cache::print(){
-    printf("|----------------------------------------|\n"
-           "| %-39s|\n"
-           "|----------|---|------------|------------|\n"
-           "| idx      | v | tag        | data       |\n"
-           "|----------|---|------------|------------|\n",name.c_str());
+    unsigned int addr;
+    printf("|-----------------------------------------------------|\n"
+           "| %-52s|\n"
+           "|----------|---|------------|------------|------------|\n"
+           "| idx      | v | tag        | data       | addr       |\n"
+           "|----------|---|------------|------------|------------|\n",name.c_str());
     
     for (unsigned int i = 0; i < numSets; i++){
-        printf("| 0x%-6X | %d | 0x%-8X | 0x%-8X |\n",
+        addr = encodeCacheAddr(sets[i].tag, i, 0, 0);
+        printf("| 0x%-6X | %d | 0x%-8X | 0x%-8X | 0x%-8X |\n",
                i,
                sets[i].valid,
                sets[i].tag,
-               sets[i].data);
+               sets[i].data,
+               addr);
     }
-    printf("|----------|---|------------|------------|\n\n");
+    printf("|----------|---|------------|------------|------------|\n\n");
 }
 
 void Cache::decodeCacheAddr(unsigned int &tag, unsigned int &idx, unsigned int &blkOffset, unsigned int &bOffset, unsigned int addr){
