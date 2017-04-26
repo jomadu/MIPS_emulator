@@ -26,7 +26,7 @@ using namespace std;
 #define BEQ "BEQ"
 #define J   "J"
 #define I   "I"
-#define MEMORYFILENAME "Regression-Testing/lh_test.txt"
+#define MEMORYFILENAME "Regression-Testing/beq_test.txt"
 
 
 // Memory
