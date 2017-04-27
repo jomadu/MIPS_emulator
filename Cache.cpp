@@ -104,7 +104,6 @@ unsigned int Cache::loadHWU(unsigned int addr, Memory &mem){
     unsigned int tag;
     unsigned int blockOffset;
     unsigned int byteOffset;
-    unsigned int ret;
     
     decodeCacheAddr(tag, idx, blockOffset, byteOffset, addr);
     
@@ -221,7 +220,6 @@ unsigned int Cache::loadBU(unsigned int addr, Memory &mem){
     unsigned int tag;
     unsigned int blockOffset;
     unsigned int byteOffset;
-    unsigned int ret;
     
     decodeCacheAddr(tag, idx, blockOffset, byteOffset, addr);
     
@@ -389,7 +387,6 @@ void Cache::storeHW(unsigned int dataHW, unsigned int addr, Memory &mem){
     unsigned int tag;
     unsigned int blockOffset;
     unsigned int byteOffset;
-    unsigned int hw;
     
     decodeCacheAddr(tag, idx, blockOffset, byteOffset, addr);
     

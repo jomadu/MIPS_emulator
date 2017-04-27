@@ -42,7 +42,7 @@ void IDEX_PR::print(){
            "ALUOP1:\t\t\t\t%s\n"
            "ALUOP0:\t\t\t\t%s\n"
            "ALUSrc:\t\t\t\t%s\n"
-           "PC + 4:\t\t\t\t0x%X\n"
+           "PCnext:\t\t\t\t0x%X\n"
            "regFileReadData1:\t0x%X\n"
            "regFileReadData2:\t0x%X\n"
            "signExtend:\t\t\t0x%X\n\n",
@@ -57,5 +57,6 @@ void IDEX_PR::print(){
            ALUSrc ? "true":"false",
            pcnext,
            regFileReadData1,
-           regFileReadData2);
+           regFileReadData2,
+           signExtend);
 }

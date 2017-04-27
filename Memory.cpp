@@ -214,7 +214,6 @@ void Memory::importFile(char * iFile, unsigned int &pc){
 }
 
 void Memory::print(unsigned int startAddr, unsigned int size){
-    unsigned int endAddr = startAddr + (size * 4);
     unsigned int memIdx;
     int addr;
     
