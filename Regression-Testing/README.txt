@@ -28,7 +28,11 @@ lh - tested, works
 sw - tested, works 
 sh - tested, works
 sb - tested, works
-beq -
+beq - tested, works (Max - I think we're stalling the right number of cycles, worth verifying though. This applies to all branches.)
+bne - tested, works
+bgtz - 
+bltz - 
+blez - 
 
 ***************Missing from this list***************
 j - test written
@@ -38,9 +42,5 @@ movn - test written
 movz - test written
 xor - test written
 xori - test written
-bne - test written
-bgtz - test written
-bltz - test written
-blez - test written
 lui - test written
 seb - test written

@@ -15,5 +15,13 @@ HazardUnit::HazardUnit(){
 }
 
 void HazardUnit::update(IFID_PR ifid_pr, IDEX_PR idex_pr){
-    stall = (idex_pr.memRead) && ((idex_pr.instr.rt == ifid_pr.instr.rs) || (idex_pr.instr.rt == ifid_pr.instr.rt));
+	if (!ifid_pr.instr.type.compare(BEQ) || !ifid_pr.instr.type.compare(BNE)) {
+		
+	}
+	else if (!ifid_pr.instr.type.compare(BGTZ) || !ifid_pr.instr.type.compare(BLTZ) || !ifid_pr.instr.type.compare(BLEZ)) {
+
+	}
+	else {
+		stall = (idex_pr.memRead) && ((idex_pr.instr.rt == ifid_pr.instr.rs) || (idex_pr.instr.rt == ifid_pr.instr.rt));
+	}
 }
