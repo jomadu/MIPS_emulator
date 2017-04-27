@@ -9,17 +9,19 @@
 #include "HazardUnit.hpp"
 #include "IFID_PR.hpp"
 #include "IDEX_PR.hpp"
+#include "EXMEM_PR.hpp"
 
 HazardUnit::HazardUnit(){
     stall = false;
 }
 
-void HazardUnit::update(IFID_PR ifid_pr, IDEX_PR idex_pr){
-    unsigned int regFileWriteReg;
-    bool ifidIsBranchInstr;
+void HazardUnit::update(IFID_PR ifid_buff, IDEX_PR idex_buff){
+    unsigned int idex_buff_regFileWriteReg;
+    bool ifidBuffIsRTypeBranchInstr = false;
+    bool ifidBuffIsITypeBranchInstr = false;
     
     // normal stall case for a load - use hazard
-    if ((idex_pr.memRead) && ((idex_pr.instr.rt == ifid_pr.instr.rs) || (idex_pr.instr.rt == ifid_pr.instr.rt))){
+    if ((idex_buff.memRead) && ((idex_buff.instr.rt == ifid_buff.instr.rs) || (idex_buff.instr.rt == ifid_buff.instr.rt))){
         stall = true;
     }
     else{
@@ -27,21 +29,44 @@ void HazardUnit::update(IFID_PR ifid_pr, IDEX_PR idex_pr){
     }
     
     //for branches
-    // Lets figure out what we know about the preceeding instruction
-    // if the regFileWriteReg of the instruction preceeding the branch instruction is the same as the branch instruction's rs or rt, we will need to stall
-    if (idex_pr.regDst){
-        regFileWriteReg = idex_pr.instr.rd;
+    // First, determine whether we have a i-type or r-type branch instruction in the ifid buff
+    if ((!ifid_buff.instr.type.compare(BEQ)) ||
+        (!ifid_buff.instr.type.compare(BNE))){
+        ifidBuffIsRTypeBranchInstr = true;
+    }
+    else if ((!ifid_buff.instr.type.compare(BLEZ)) ||
+             (!ifid_buff.instr.type.compare(BGTZ)) ||
+             (!ifid_buff.instr.type.compare(BLTZ))){
+        ifidBuffIsITypeBranchInstr = true;
+    }
+    // Next we need the regFileWriteRegisters from the idex_buff and exmem_buff pr's
+    // We know exactly what the idex_buff is, but we need to extrapolate the exmem_buff
+    
+    if (idex_buff.regDst){
+        idex_buff_regFileWriteReg = idex_buff.instr.rd;
     }
     else{
-        regFileWriteReg = idex_pr.instr.rt;
+        idex_buff_regFileWriteReg = idex_buff.instr.rt;
     }
-    ifidIsBranchInstr = (!ifid_pr.instr.type.compare(BEQ)); // Add more types of branch instructions here
-    if (ifidIsBranchInstr && ((regFileWriteReg == ifid_pr.instr.rs) || (regFileWriteReg == ifid_pr.instr.rt))){
-        stall = true;
+    
+    // Stall Logic
+    if (ifidBuffIsRTypeBranchInstr){
+        if ((idex_buff_regFileWriteReg == ifid_buff.instr.rs) || (idex_buff_regFileWriteReg == ifid_buff.instr.rt)){
+            stall = true;
+        }
+        else{
+            stall = false;
+        }
     }
-    else{
-        stall = false;
+    else if (ifidBuffIsITypeBranchInstr){
+        if (idex_buff_regFileWriteReg == ifid_buff.instr.rs){
+            stall = true;
+        }
+        else{
+            stall = false;
+        }
     }
+             
     return;
 
 }

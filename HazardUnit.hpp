@@ -12,6 +12,7 @@
 #include <stdio.h>
 #include "IDEX_PR.hpp"
 #include "IFID_PR.hpp"
+#include "EXMEM_PR.hpp"
 
 #define BEQ "BEQ"
 #define BNE "BNE"
@@ -24,7 +25,7 @@ public:
     bool stall;
 public:
     HazardUnit();
-    void update(IFID_PR ifid_pr, IDEX_PR idex_pr);
+    void update(IFID_PR ifid_buff, IDEX_PR idex_buff);
 };
 
 #endif /* HazardUnit_hpp */

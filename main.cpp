@@ -31,7 +31,7 @@ using namespace std;
 #define BLEZ "BLEZ"
 #define J   "J"
 #define I   "I"
-#define MEMORYFILENAME "Regression-Testing/bgtz_test.txt"
+#define MEMORYFILENAME "Regression-Testing/beq_test.txt"
 
 
 // Memory
@@ -217,10 +217,14 @@ void loadPR(){
 
 void IF(){
     bool takeBranch;
-    bool regFileReadDataCompare;
+    bool regFileReadDataBranchCondMet;
     bool branchInstrInID;
     unsigned int branchTarget;
     unsigned int iCacheData;
+    bool ifidIsRTypeBranchInstr = false;
+    bool ifidIsITypeBranchInstr = false;
+    int branchCondArg1;
+    int branchCondArg2;
     
     
     //Computing Branch Target and Branch indicator (PCSrc)
@@ -231,28 +235,105 @@ void IF(){
         branchTarget = ((ifid.instr.immed) << 2) + ifid.pcnext;
     }
     
+    // figure out what the potential branch instruction is comparing
+    if ((!ifid.instr.type.compare(BEQ)) ||
+        (!ifid.instr.type.compare(BNE))){
+        ifidIsRTypeBranchInstr = true;
+    }
+    else if ((!ifid.instr.type.compare(BLEZ)) ||
+             (!ifid.instr.type.compare(BGTZ)) ||
+             (!ifid.instr.type.compare(BLTZ))){
+        ifidIsITypeBranchInstr = true;
+    }
+    
+    // Seperate out by I-Type and R-Type
+    if (ifidIsRTypeBranchInstr){
+        //forwarding?
+        // which register to forward?
+        if (exmem.regWrite && (ifid.instr.rs == exmem.regFileWriteReg)){
+            branchCondArg1 = exmem.ALUResult;
+            if (memwb.regWrite && (ifid.instr.rt == memwb.regFileWriteReg)){
+                branchCondArg2 = memwb.memBypassData;
+            }
+            else{
+                branchCondArg2 = regFile.readReg(ifid.instr.rt);
+            }
+        }
+        else if (exmem.regWrite && (ifid.instr.rt == exmem.regFileWriteReg)){
+            branchCondArg1 = exmem.ALUResult;
+            if (memwb.regWrite && (ifid.instr.rs == memwb.regFileWriteReg)){
+                branchCondArg2 = memwb.memBypassData;
+            }
+            else{
+                branchCondArg2 = regFile.readReg(ifid.instr.rs);
+            }
+        }
+        else if (memwb.regWrite && (ifid.instr.rs == memwb.regFileWriteReg)){
+            branchCondArg1 = memwb.memBypassData;
+            if (exmem.regWrite && (ifid.instr.rt == exmem.regFileWriteReg)){
+                branchCondArg2 = exmem.ALUResult;
+            }
+            else{
+                branchCondArg2 = regFile.readReg(ifid.instr.rt);
+            }
+        }
+        else if (memwb.regWrite && (ifid.instr.rt == memwb.regFileWriteReg)){
+            branchCondArg1 = memwb.memBypassData;
+            if (exmem.regWrite && (ifid.instr.rs == exmem.regFileWriteReg)){
+                branchCondArg2 = exmem.ALUResult;
+            }
+            else{
+                branchCondArg2 = regFile.readReg(ifid.instr.rs);
+            }
+        }
+        else{
+            branchCondArg1 = regFile.readReg(ifid.instr.rs);
+            branchCondArg2 = regFile.readReg(ifid.instr.rt);
+        }
+    }
+    else if(ifidIsITypeBranchInstr){
+        if (exmem.regWrite && (ifid.instr.rs == exmem.regFileWriteReg)){
+            branchCondArg1 = exmem.ALUResult;
+        }
+        else if (memwb.regWrite && (ifid.instr.rs == memwb.regFileWriteReg)){
+            branchCondArg1 = memwb.memBypassData;
+        }
+        else{
+            branchCondArg1 = regFile.readReg(ifid.instr.rs);
+        }
+    }
+    else{
+        // Should never hit
+        branchCondArg1 = regFile.readReg(ifid.instr.rs);
+        branchCondArg2 = regFile.readReg(ifid.instr.rt);
+    }
+    
     // Is the branch in ID taken? (PCSrc = true (taken), false (not-taken))
 	if (!ifid.instr.type.compare(BEQ)) {
-		regFileReadDataCompare = (regFile.readReg(ifid.instr.rs) == regFile.readReg(ifid.instr.rt));
+		regFileReadDataBranchCondMet = (branchCondArg1 == branchCondArg2);
 	}
 	else if (!ifid.instr.type.compare(BNE)) {
-		regFileReadDataCompare = (regFile.readReg(ifid.instr.rs) != regFile.readReg(ifid.instr.rt));
+		regFileReadDataBranchCondMet = (branchCondArg1 != branchCondArg2);
 	}
 	else if (!ifid.instr.type.compare(BLEZ)) {
-		regFileReadDataCompare = (regFile.readReg(ifid.instr.rs) <= 0);
+		regFileReadDataBranchCondMet = (branchCondArg1 <= 0);
 	}
 	else if (!ifid.instr.type.compare(BGTZ)) {
-		regFileReadDataCompare = (regFile.readReg(ifid.instr.rs) > 0);
+		regFileReadDataBranchCondMet = (branchCondArg1 > 0);
 	}
 	else if (!ifid.instr.type.compare(BLTZ)) {
-		regFileReadDataCompare = (regFile.readReg(ifid.instr.rs) < 0);
+		regFileReadDataBranchCondMet = (branchCondArg1 < 0);
 	}
 	else {
-		regFileReadDataCompare = false;
+		regFileReadDataBranchCondMet = false;
 	}
     //regFileReadDataCompare = (regFile.readReg(ifid.instr.rs) == regFile.readReg(ifid.instr.rt));
-    branchInstrInID = (!ifid.instr.type.compare(BEQ)) || (!ifid.instr.type.compare(BNE)) || (!ifid.instr.type.compare(BLEZ)) || (!ifid.instr.type.compare(BGTZ)) || (!ifid.instr.type.compare(BLTZ)); // Compare returns 0 if strings are equal
-    takeBranch = (branchInstrInID && regFileReadDataCompare);
+    branchInstrInID = (  !ifid.instr.type.compare(BEQ)) ||
+                        (!ifid.instr.type.compare(BNE)) ||
+                        (!ifid.instr.type.compare(BLEZ)) ||
+                        (!ifid.instr.type.compare(BGTZ)) ||
+                        (!ifid.instr.type.compare(BLTZ)); // Compare returns 0 if strings are equal
+    takeBranch = (branchInstrInID && regFileReadDataBranchCondMet);
     
     // PC input Mux
     if (takeBranch){
@@ -769,11 +850,6 @@ void executeClockCycle(){
         dcache.print();
         regFile.print();
         printPipeline();
-//        ifid.print();
-//        idex.print();
-//        exmem.print();
-//        memwb.print();
-//        regFile.print();
     }
 }
 
