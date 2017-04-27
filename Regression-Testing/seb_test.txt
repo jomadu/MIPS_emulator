@@ -1,0 +1,13 @@
+0x2008FFFF  // addi $t0, $zero, 0xFFFF
+0x20090080  // addi $t1, $zero, 0x80
+0x200AFF22  // addi $t2, $zero, 0xFF22
+0x200B1234  // addi $t3, $zero, 0x1234
+0x7C088420  // seb $s0, $t0 -> s0 = 0xFFFFFFFF  **Hopefully these work, had to write the hex by hand**
+0x7C098C20  // seb $s1, $t1 -> s1 = 0xFFFFFF80
+0x7C0A9420  // seb $s2, $t2 -> s2 = 0x00000022
+0x7C0B9C20  // seb $s3, $t3 -> s3 = 0x00000034
+0x00000000
+0x00000000
+0x00000000
+0x00000000
+0x00000000

@@ -14,6 +14,10 @@
 #include "IFID_PR.hpp"
 
 #define BEQ "BEQ"
+#define BNE "BNE"
+#define BGTZ "BGTZ"
+#define BLTZ "BLTZ"
+#define BLEZ "BLEZ"
 
 class HazardUnit{
 public:

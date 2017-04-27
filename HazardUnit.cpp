@@ -43,4 +43,5 @@ void HazardUnit::update(IFID_PR ifid_pr, IDEX_PR idex_pr){
         stall = false;
     }
     return;
+
 }

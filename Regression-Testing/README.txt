@@ -20,26 +20,27 @@ addiu - is this supposed to be addu? if so, addu doesn't work
 ori - MOSTLY WORKS (also should be zero extended)
 slti - tested, works
 sltiu - tested, works
-lw - tested, works // (retest)
-lbu - tested, works // (retest)
-lb - tested, works // (retest)
-lhu - tested, works // (retest)
-lh - tested, works // (retest)
+lw - tested, works
+lbu - tested, works
+lb - tested, works
+lhu - tested, works
+lh - tested, works
 sw - tested, works 
 sh - tested, works
 sb - tested, works
-beq -
+beq - tested, works (Max - I think we're stalling the right number of cycles, worth verifying though. This applies to all branches.)
+bne - tested, works
+bgtz - 
+bltz - 
+blez - 
 
 ***************Missing from this list***************
-jr
-movn
-movz
-xor
-xori
-bne
-bgtz
-bltz
-blez
-j
-jal
-lui
+j - test written
+jal - test written (combined with jr)
+jr - test written (combined with jal)
+movn - test written
+movz - test written
+xor - test written
+xori - test written
+lui - test written
+seb - test written

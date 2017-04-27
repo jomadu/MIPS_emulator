@@ -25,9 +25,13 @@ using namespace std;
 #define SH "SH"
 #define SB  "SB"
 #define BEQ "BEQ"
+#define BNE "BNE"
+#define BGTZ "BGTZ"
+#define BLTZ "BLTZ"
+#define BLEZ "BLEZ"
 #define J   "J"
 #define I   "I"
-#define MEMORYFILENAME "Regression-Testing/beq_test.txt"
+#define MEMORYFILENAME "Regression-Testing/bgtz_test.txt"
 
 
 // Memory
@@ -178,6 +182,18 @@ Instruction decode(unsigned int mc){
         case 0x4:
             myInstr.type = BEQ;
             break;
+		case 0x5:
+			myInstr.type = BNE;
+			break;
+		case 0x6:
+			myInstr.type = BLEZ;
+			break;
+		case 0x7:
+			myInstr.type = BGTZ;
+			break;
+		case 0x1:
+			myInstr.type = BLTZ;
+			break;
         default:
             myInstr.type = I;
             break;
@@ -216,8 +232,26 @@ void IF(){
     }
     
     // Is the branch in ID taken? (PCSrc = true (taken), false (not-taken))
-    regFileReadDataCompare = (regFile.readReg(ifid.instr.rs) == regFile.readReg(ifid.instr.rt));
-    branchInstrInID = !ifid.instr.type.compare(BEQ); // Compare returns 0 if strings are equal
+	if (!ifid.instr.type.compare(BEQ)) {
+		regFileReadDataCompare = (regFile.readReg(ifid.instr.rs) == regFile.readReg(ifid.instr.rt));
+	}
+	else if (!ifid.instr.type.compare(BNE)) {
+		regFileReadDataCompare = (regFile.readReg(ifid.instr.rs) != regFile.readReg(ifid.instr.rt));
+	}
+	else if (!ifid.instr.type.compare(BLEZ)) {
+		regFileReadDataCompare = (regFile.readReg(ifid.instr.rs) <= 0);
+	}
+	else if (!ifid.instr.type.compare(BGTZ)) {
+		regFileReadDataCompare = (regFile.readReg(ifid.instr.rs) > 0);
+	}
+	else if (!ifid.instr.type.compare(BLTZ)) {
+		regFileReadDataCompare = (regFile.readReg(ifid.instr.rs) < 0);
+	}
+	else {
+		regFileReadDataCompare = false;
+	}
+    //regFileReadDataCompare = (regFile.readReg(ifid.instr.rs) == regFile.readReg(ifid.instr.rt));
+    branchInstrInID = (!ifid.instr.type.compare(BEQ)) || (!ifid.instr.type.compare(BNE)) || (!ifid.instr.type.compare(BLEZ)) || (!ifid.instr.type.compare(BGTZ)) || (!ifid.instr.type.compare(BLTZ)); // Compare returns 0 if strings are equal
     takeBranch = (branchInstrInID && regFileReadDataCompare);
     
     // PC input Mux
@@ -295,7 +329,7 @@ void ID(){
         idex_buff.regWrite = false;
         idex_buff.memToReg = false;
     }
-    else if (!ifid.instr.type.compare(BEQ)){
+    else if (!ifid.instr.type.compare(BEQ) || !ifid.instr.type.compare(BNE) || !ifid.instr.type.compare(BLEZ) || !ifid.instr.type.compare(BGTZ) || !ifid.instr.type.compare(BLTZ)){
         idex_buff.regDst = false;
         idex_buff.ALUOp0 = true;
         idex_buff.ALUOp1 = false;
