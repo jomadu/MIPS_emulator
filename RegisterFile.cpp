@@ -145,7 +145,7 @@ void RegisterFile::writeReg(unsigned int regNum, unsigned int data){
     }
 }
 
-unsigned int RegisterFile::readReg(unsigned int regNum){
+int RegisterFile::readReg(unsigned int regNum){
     switch (regNum) {
         case 0:
             // Never write to the zero register

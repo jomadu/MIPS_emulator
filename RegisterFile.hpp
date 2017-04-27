@@ -48,7 +48,7 @@ public:
 public:
     RegisterFile();
     void writeReg(unsigned int regNum, unsigned int data);
-    unsigned int readReg(unsigned int regNum);
+    int readReg(unsigned int regNum);
     void print();
 };
 

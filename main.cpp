@@ -470,7 +470,7 @@ void EX(){
         // R-type
         if (idex.instr.opcode == 0x0){
             switch(idex.instr.funct){
-                    //goes in order of green cheat sheet
+                //goes in order of green cheat sheet
                 case 0x20:
                     //add
                     ALUControl = 0x2;
@@ -530,6 +530,8 @@ void EX(){
                     ALUControl = 0x8;
                     break;
                 default:
+                    printf("Unknown R-type instruction with funct: 0x%X\nDefaulting to sll...\n", idex.instr.funct);
+                    ALUControl = 0x4;
                     break;
             }
         }
@@ -562,6 +564,8 @@ void EX(){
                     ALUControl = 0x7;
                     break;
                 default:
+                    printf("Unknown I-type instruction with opcode: 0x%X\nDefaulting to sll...\n", idex.instr.opcode);
+                    ALUControl = 0x4;
                     break;
             }
         }
@@ -574,6 +578,10 @@ void EX(){
     else if (!idex.ALUOp1 && idex.ALUOp0){
         // BEQ instructions
         ALUControl = 0x6;
+    }
+    else{
+        printf("Unable to determine ALU control lines.");
+        ALUControl = 0x4;
     }
     
     // ALUControl Lines
