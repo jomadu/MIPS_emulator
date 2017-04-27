@@ -1,0 +1,12 @@
+0x20080000  // addi $t0, $zero, 0x0
+0x20090001  // addi $t1, $zero, 0x1
+0x200A8765  // addi $t2, $zero, 0x8765
+0x0149800A  // movz s0 t2 t1 -> (t1 != 0, so nothing should happen)
+0x0148880A  // movz s1 t2 t0 -> (t0= 0, so should move t2 into s1)
+0x00000000
+0x00000000
+0x00000000
+0x00000000
+0x00000000
+0x00000000
+0x00000000
