@@ -28,6 +28,7 @@ public:
     unsigned int regFileReadData1;
     unsigned int regFileReadData2;
     unsigned int signExtend;
+    unsigned int zeroExtend;
 public:
     IDEX_PR();
     void print();

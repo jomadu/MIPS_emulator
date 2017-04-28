@@ -33,7 +33,7 @@ using namespace std;
 #define JAL  "JAL"
 #define JR "JR"
 #define I   "I"
-#define MEMORYFILENAME "Regression-Testing/seb_test.txt"
+#define MEMORYFILENAME "Regression-Testing/xori_test.txt"
 
 
 // Memory
@@ -123,6 +123,8 @@ void printPipeline(){
            idex.regFileReadData2);
     printf("|                        |signExtend:         0x%-10X|                                 |                                 |\n",
            idex.signExtend);
+    printf("|                        |zeroExtend:         0x%-10X|                                 |                                 |\n",
+           idex.zeroExtend);
     printf("|------------------------|--------------------------------|---------------------------------|---------------------------------|\n\n");
 }
 
@@ -482,6 +484,8 @@ void ID(){
         idex_buff.signExtend = ifid.instr.immed;
     }
     
+    idex_buff.zeroExtend = ifid.instr.immed;
+    
     hazardUnit.update(ifid_buff, idex_buff);
     
 }
@@ -627,23 +631,6 @@ void EX(){
                     unsignedFlag = true;
                     ALUControl = 0x6;
                     break;
-                case 0x1A:
-                    //div
-                    ALUControl = 0x5;
-                    break;
-                case 0x1B:
-                    //divu
-                    unsignedFlag = true;
-                    ALUControl = 0x5;
-                    break;
-                case 0x18:
-                    //mult
-                    ALUControl = 0x8;
-                case 0x19:
-                    //multu
-                    unsignedFlag = true;
-                    ALUControl = 0x8;
-                    break;
                 case 0xA:
                     //movz
                     ALUControl = 0xD;
@@ -676,11 +663,17 @@ void EX(){
                     break;
                 case 0xC:
                     //andi
+                    //since we have a bitwise immediate instr, we need ALUInput2 to be the zero-extended
                     ALUControl = 0x0;
+                    ALUInput2U = idex.zeroExtend;
+                    ALUInput2 = (int) ALUInput2U;
                     break;
                 case 0xD:
                     //ori
+                    //since we have a bitwise immediate instr, we need ALUInput2 to be the zero-extended
                     ALUControl = 0x1;
+                    ALUInput2U = idex.zeroExtend;
+                    ALUInput2 = (int) ALUInput2U;
                     break;
                 case 0xA:
                     //slti
@@ -693,7 +686,10 @@ void EX(){
                     break;
                 case 0xE:
                     //xori
+                    //since we have a bitwise immediate instr, we need ALUInput2 to be the zero-extended
                     ALUControl = 0xF;
+                    ALUInput2U = idex.zeroExtend;
+                    ALUInput2 = (int) ALUInput2U;
                     break;
                 default:
                     printf("Unknown I-type instruction with opcode: 0x%X\nDefaulting to sll...\n", idex.instr.opcode);
@@ -719,11 +715,11 @@ void EX(){
     switch (ALUControl) {
         case 0x0:
             // Bitwise AND
-            exmem_buff.ALUResult = ALUInput1 & ALUInput2;
+            exmem_buff.ALUResult = ALUInput1U & ALUInput2U;
             break;
         case 0x1:
             // Bitwise OR
-            exmem_buff.ALUResult = ALUInput1 | ALUInput2;
+            exmem_buff.ALUResult = ALUInput1U | ALUInput2U;
             break;
         case 0x2:
             // ADD
@@ -745,15 +741,6 @@ void EX(){
             // TODO: May need to consider signed/unsigned int
             shamt = (idex.signExtend & shamtMask) >> 6;
             exmem_buff.ALUResult = ALUInput2 << shamt;
-            break;
-        case 0x5:
-            // DIV - Apparently we don't have to implement DIV?
-            if (unsignedFlag){
-                exmem_buff.ALUResult = ALUInput1U / ALUInput2U;
-            }
-            else{
-                exmem_buff.ALUResult = ALUInput1 / ALUInput2;
-            }
             break;
         case 0x6:
             // SUB
@@ -783,15 +770,6 @@ void EX(){
                 }
             }
             
-            break;
-        case 0x8:
-            // MULT - Apparently we don't have to implement MULT?
-            if (unsignedFlag){
-                exmem_buff.ALUResult = ALUInput1U * ALUInput2U;
-            }
-            else{
-                exmem_buff.ALUResult = ALUInput1 * ALUInput2;
-            }
             break;
         case 0xC:
             // Bitwise NOR

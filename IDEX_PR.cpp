@@ -24,6 +24,7 @@ IDEX_PR::IDEX_PR(){
     regFileReadData1 = 0x0;
     regFileReadData2 = 0x0;
     signExtend = 0x0;
+    zeroExtend = 0x0;
 }
 
 void IDEX_PR::print(){
