@@ -12,28 +12,20 @@
 
 Cache::Cache(){}
 
-Cache::Cache(int nSets, int sSize, int penalty, Memory &mem, string nm){
+Cache::Cache(int nSets, int penalty, Memory &mem, string nm){
     numSets = nSets;
     sets = new Set[numSets];
-    setSize = sSize;
     missPenalty = penalty-1;
     name = nm;
     penaltyCounter = 0;
     inPenalty = false;
     
     numByteOffsetBits = ceil(log2(WORD_SIZE/8));
-    numBlockOffsetBits = ceil(log2(setSize));
     numIdxBits = ceil(log2(nSets));
-    numTagBits = WORD_SIZE-numIdxBits-numBlockOffsetBits-numByteOffsetBits;
+    numTagBits = WORD_SIZE-numIdxBits-numByteOffsetBits;
     
     tagMask = (0xFFFFFFFF << (WORD_SIZE-numTagBits));
-    idxMask = (0xFFFFFFFF >> (WORD_SIZE-numIdxBits)) << (numBlockOffsetBits+numByteOffsetBits);
-    if (numBlockOffsetBits == 0){
-        blockOffsetMask = 0x0;
-    }
-    else{
-        blockOffsetMask = (0xFFFFFFFF >> (WORD_SIZE-numBlockOffsetBits)) << (numByteOffsetBits);
-    }
+    idxMask = (0xFFFFFFFF >> (WORD_SIZE-numIdxBits)) << (numByteOffsetBits);
     byteOffsetMask = (0xFFFFFFFF >> (WORD_SIZE-numByteOffsetBits));
     
 }
@@ -41,10 +33,9 @@ Cache::Cache(int nSets, int sSize, int penalty, Memory &mem, string nm){
 unsigned int Cache::loadW(unsigned int addr, Memory &mem){
     unsigned int idx;
     unsigned int tag;
-    unsigned int blockOffset;
     unsigned int byteOffset;
     
-    decodeCacheAddr(tag, idx, blockOffset, byteOffset, addr);
+    decodeCacheAddr(tag, idx, byteOffset, addr);
     
     // Are we penaltyCounter?
     // No
@@ -102,10 +93,9 @@ unsigned int Cache::loadW(unsigned int addr, Memory &mem){
 unsigned int Cache::loadHWU(unsigned int addr, Memory &mem){
     unsigned int idx;
     unsigned int tag;
-    unsigned int blockOffset;
     unsigned int byteOffset;
     
-    decodeCacheAddr(tag, idx, blockOffset, byteOffset, addr);
+    decodeCacheAddr(tag, idx, byteOffset, addr);
     
     // Are we penaltyCounter?
     // No
@@ -218,10 +208,9 @@ int Cache::loadHW(unsigned int addr, Memory &mem){
 unsigned int Cache::loadBU(unsigned int addr, Memory &mem){
     unsigned int idx;
     unsigned int tag;
-    unsigned int blockOffset;
     unsigned int byteOffset;
     
-    decodeCacheAddr(tag, idx, blockOffset, byteOffset, addr);
+    decodeCacheAddr(tag, idx, byteOffset, addr);
     
     // Are we penaltyCounter?
     // No
@@ -324,10 +313,9 @@ int Cache::loadB(unsigned int addr, Memory &mem){
 void Cache::storeW(unsigned int dataW, unsigned int addr, Memory &mem){
     unsigned int idx;
     unsigned int tag;
-    unsigned int blockOffset;
     unsigned int byteOffset;
     
-    decodeCacheAddr(tag, idx, blockOffset, byteOffset, addr);
+    decodeCacheAddr(tag, idx, byteOffset, addr);
     
     // Are we penaltyCounter?
     // No
@@ -353,6 +341,12 @@ void Cache::storeW(unsigned int dataW, unsigned int addr, Memory &mem){
                 printf("%s: Hit!\n\n", name.c_str());
             }
             sets[idx].data = dataW;
+            // if write through policy
+            //  write dataW to memory
+            //  penaltyCounter = missPenalty
+            //  inPenalty = true
+            // else
+            //  inpenalty = false
             inPenalty = false;
             return;
         }
@@ -385,10 +379,9 @@ void Cache::storeW(unsigned int dataW, unsigned int addr, Memory &mem){
 void Cache::storeHW(unsigned int dataHW, unsigned int addr, Memory &mem){
     unsigned int idx;
     unsigned int tag;
-    unsigned int blockOffset;
     unsigned int byteOffset;
     
-    decodeCacheAddr(tag, idx, blockOffset, byteOffset, addr);
+    decodeCacheAddr(tag, idx, byteOffset, addr);
     
     // Are we penaltyCounter?
     // No
@@ -466,10 +459,9 @@ void Cache::storeHW(unsigned int dataHW, unsigned int addr, Memory &mem){
 void Cache::storeB(unsigned int dataB, unsigned int addr, Memory &mem){
     unsigned int idx;
     unsigned int tag;
-    unsigned int blockOffset;
     unsigned int byteOffset;
     
-    decodeCacheAddr(tag, idx, blockOffset, byteOffset, addr);
+    decodeCacheAddr(tag, idx, byteOffset, addr);
     
     // Are we penaltyCounter?
     // No
@@ -543,19 +535,20 @@ void Cache::storeB(unsigned int dataB, unsigned int addr, Memory &mem){
 void Cache::blockFill(unsigned int addr, unsigned int nSets, Memory mem){
     unsigned int idx;
     unsigned int tag;
-    unsigned int blockOffset;
     unsigned int byteOffset;
     unsigned int memAddr;
     
     for (int i = 0; i < nSets; i++){
-        decodeCacheAddr(tag, idx, blockOffset, byteOffset, addr);
+        decodeCacheAddr(tag, idx, byteOffset, addr);
+        // if write-back policy
         if (sets[idx].valid){
             if (debug){
                 printf("%s: Storing valid data at idx: 0x%X to memory.\n",name.c_str(), idx);
             }
-            memAddr = encodeCacheAddr(sets[idx].tag, idx, blockOffset, byteOffset);
+            memAddr = encodeCacheAddr(sets[idx].tag, idx, byteOffset);
             mem.storeW(sets[idx].data, memAddr);
         }
+        //
         sets[idx].data = mem.loadW(addr);
         sets[idx].tag = tag;
         sets[idx].valid = false;
@@ -566,11 +559,10 @@ void Cache::blockFill(unsigned int addr, unsigned int nSets, Memory mem){
 void Cache::validateBlocks(unsigned int addr, unsigned int nLines){
     unsigned int idx;
     unsigned int tag;
-    unsigned int blockOffset;
     unsigned int byteOffset;
     
     for (int i = 0; i < nLines; i++){
-        decodeCacheAddr(tag, idx, blockOffset, byteOffset, addr);
+        decodeCacheAddr(tag, idx, byteOffset, addr);
         sets[idx].valid = true;
         addr = addr + 4;
     }
@@ -591,7 +583,7 @@ void Cache::print(){
            "|----------|---|------------|------------|------------|\n",name.c_str());
     
     for (unsigned int i = 0; i < numSets; i++){
-        addr = encodeCacheAddr(sets[i].tag, i, 0, 0);
+        addr = encodeCacheAddr(sets[i].tag, i, 0);
         printf("| 0x%-6X | %d | 0x%-8X | 0x%-8X | 0x%-8X |\n",
                i,
                sets[i].valid,
@@ -602,19 +594,17 @@ void Cache::print(){
     printf("|----------|---|------------|------------|------------|\n\n");
 }
 
-void Cache::decodeCacheAddr(unsigned int &tag, unsigned int &idx, unsigned int &blkOffset, unsigned int &bOffset, unsigned int addr){
-    tag = (tagMask & addr) >> (numIdxBits + numBlockOffsetBits + numByteOffsetBits);
-    idx = (idxMask & addr) >> (numBlockOffsetBits + numByteOffsetBits);
-    blkOffset = (blockOffsetMask & addr) >> (numByteOffsetBits);
+void Cache::decodeCacheAddr(unsigned int &tag, unsigned int &idx, unsigned int &bOffset, unsigned int addr){
+    tag = (tagMask & addr) >> (numIdxBits + numByteOffsetBits);
+    idx = (idxMask & addr) >> (numByteOffsetBits);
     bOffset = (byteOffsetMask & addr);
 }
 
-unsigned int Cache::encodeCacheAddr(unsigned int tag, unsigned int idx, unsigned int blkOffset, unsigned int bOffset){
+unsigned int Cache::encodeCacheAddr(unsigned int tag, unsigned int idx, unsigned int bOffset){
     unsigned int addr;
     
-    addr = (tag << (numIdxBits + numBlockOffsetBits + numByteOffsetBits)) |
-            (idx << (numBlockOffsetBits + numByteOffsetBits)) |
-            (blkOffset << (numByteOffsetBits)) |
+    addr = (tag << (numIdxBits + numByteOffsetBits)) |
+            (idx << (numByteOffsetBits)) |
             (bOffset);
     return addr;
 }

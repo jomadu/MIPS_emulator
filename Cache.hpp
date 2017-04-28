@@ -28,14 +28,12 @@ public:
     struct Set{
         bool valid = false;
         unsigned int tag = 0x0;
-        unsigned int blockOffset = 0x0;
         unsigned int byteOffset = 0x0;
         unsigned int data = 0x0;
     };
     
     Set * sets;
     int numSets;
-    int setSize;
     int missPenalty;
     int penaltyCounter;
     bool inPenalty;
@@ -45,17 +43,15 @@ private:
     
     int numIdxBits;
     int numTagBits;
-    int numBlockOffsetBits;
     int numByteOffsetBits;
     
     unsigned int tagMask;
     unsigned int idxMask;
-    unsigned int blockOffsetMask;
     unsigned int byteOffsetMask;
     
 public:
     Cache();
-    Cache(int nSets, int bSize, int penalty, Memory &mem, string nm);
+    Cache(int nSets, int penalty, Memory &mem, string nm);
     unsigned int loadW(unsigned int addr, Memory &mem);
     unsigned int loadHWU(unsigned int addr, Memory &mem);
     int loadHW(unsigned int addr, Memory &mem);
@@ -69,8 +65,8 @@ public:
 private:
     void blockFill(unsigned int addr, unsigned int nSets, Memory mem);
     void validateBlocks(unsigned int addr, unsigned int nSets);
-    void decodeCacheAddr(unsigned int &tag, unsigned int &idx, unsigned int &blkOffset, unsigned int &bOffset, unsigned int addr);
-    unsigned int encodeCacheAddr(unsigned int tag, unsigned int idx, unsigned int blkOffset, unsigned int bOffset);
+    void decodeCacheAddr(unsigned int &tag, unsigned int &idx, unsigned int &bOffset, unsigned int addr);
+    unsigned int encodeCacheAddr(unsigned int tag, unsigned int idx, unsigned int bOffset);
     
 };
 #endif /* iCache_hpp */

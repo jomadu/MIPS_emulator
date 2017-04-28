@@ -903,8 +903,8 @@ void startup(){
     char file [] = MEMORYFILENAME;
     memory.importFile(file, PC);
     ifid.pcnext = PC;
-    icache = Cache(16, 1, 2, memory, "iCache");
-    dcache = Cache(16, 1, 2, memory, "dCache");
+    icache = Cache(16, 2, memory, "iCache");
+    dcache = Cache(16, 2, memory, "dCache");
 }
 int main(int argc, const char * argv[]) {
     startup();
