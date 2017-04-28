@@ -30,8 +30,7 @@ public:
     unsigned int forwardB;
     unsigned int branchForwardA;
     unsigned int branchForwardB;
-    unsigned int jumpForwardA;
-    unsigned int jumpForwardB;
+    unsigned int jumpForward;
 public:
     ForwardingUnit();
     void updateSTD(IDEX_PR idex, EXMEM_PR exmem, MEMWB_PR memwb);

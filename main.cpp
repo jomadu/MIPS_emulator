@@ -33,7 +33,7 @@ using namespace std;
 #define JAL  "JAL"
 #define JR "JR"
 #define I   "I"
-#define MEMORYFILENAME "Regression-Testing/blez_test.txt"
+#define MEMORYFILENAME "Regression-Testing/jal_test.txt"
 
 
 // Memory
@@ -155,7 +155,14 @@ Instruction decode(unsigned int mc){
     
     switch (myInstr.opcode) {
         case 0x0:
-            myInstr.type = R;
+            // Typically R type, butt...
+            // JR is weird. We need a case statement here.
+            if (myInstr.funct == 0x8){
+                myInstr.type = JR;
+            }
+            else{
+                myInstr.type = R;
+            }
             break;
         case 0x2:
             myInstr.type = J;
@@ -233,6 +240,7 @@ void IF(){
     unsigned int iCacheData;
     int branchCondArg1;
     int branchCondArg2;
+    int jumpTargetArg;
     
     forwardingUnit.updateBranching(ifid, exmem, memwb);
     forwardingUnit.updateJumping(ifid, exmem, memwb);
@@ -274,6 +282,7 @@ void IF(){
             break;
     }
     
+    // Evaluate the branch condition and if (branch in ifid)
 	if (!ifid.instr.type.compare(BEQ)) {
 		regFileReadDataBranchCondMet = (branchCondArg1 == branchCondArg2);
         branchInstrInIFID = true;
@@ -299,18 +308,40 @@ void IF(){
         branchInstrInIFID = false;
 	}
     
-    // Computing Branch Target and Branch indicator (PCSrc)
+    // Computing Branch Target and Branch indicator (takeBranch)
     if (ifid.instr.immed >= 0x8000){
         branchTarget = ((ifid.instr.immed | 0xFFFF0000) << 2) + ifid.pcnext;
     }
     else{
         branchTarget = ((ifid.instr.immed) << 2) + ifid.pcnext;
     }
-    
     takeBranch = (branchInstrInIFID && regFileReadDataBranchCondMet);
     
     // Jump Stuff
-    jumpTarget = (ifid.pcnext & 0xF0000000) | (ifid.instr.addr << 2);
+    
+    // Determines JTA and Jump target and if (jump in ifid)
+    switch(forwardingUnit.jumpForward){
+        case 0x0:
+            jumpTargetArg = ifid.instr.addr;
+            jumpTarget = (ifid.pcnext & 0xF0000000) | (jumpTargetArg << 2);
+            break;
+        case 0x1:
+            jumpTargetArg = regFile.readReg(ifid.instr.rs);
+            jumpTarget = jumpTargetArg;
+            break;
+        case 0x2:
+            jumpTargetArg = exmem.ALUResult;
+            jumpTarget = jumpTargetArg;
+            break;
+        case 0x3:
+            jumpTargetArg = memwb.memBypassData;
+            jumpTarget = jumpTargetArg;
+            break;
+        default:
+            jumpTargetArg = ifid.instr.addr;
+            jumpTarget = (ifid.pcnext & 0xF0000000) | (jumpTargetArg << 2);
+            break;
+    }
     jumpInstrInIFID = (!ifid.instr.type.compare(J) || !ifid.instr.type.compare(JAL) || !ifid.instr.type.compare(JR));
     
     // PC input Mux
@@ -342,7 +373,7 @@ void IF(){
     if (!icache.inPenalty){
         ifid_buff.pcnext = PC + 4;
         ifid_buff.instr = decode(iCacheData);
-        // This is a hack
+        // This is a hack...if it work it ain't stupid
         if (!ifid_buff.instr.type.compare(JAL)){
             regFile.writeReg(31, PC + 8);
         }

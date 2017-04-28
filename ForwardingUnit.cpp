@@ -14,6 +14,9 @@
 ForwardingUnit::ForwardingUnit(){
     forwardA = 0x0;
     forwardB = 0x0;
+    branchForwardA = 0x0;
+    branchForwardB = 0x0;
+    jumpForward = 0x0;
 }
 
 void ForwardingUnit::updateSTD(IDEX_PR idex, EXMEM_PR exmem, MEMWB_PR memwb){
@@ -36,6 +39,7 @@ void ForwardingUnit::updateSTD(IDEX_PR idex, EXMEM_PR exmem, MEMWB_PR memwb){
     if ((memwb.regWrite) && (memwb.regFileWriteReg != 0) && (memwb.regFileWriteReg == idex.instr.rt)){
         forwardB = 0x1;
     }
+    return;
 }
 void ForwardingUnit::updateBranching(IFID_PR ifid, EXMEM_PR exmem, MEMWB_PR memwb){
     bool ifidIsRTypeBranchInstr = false;
@@ -113,8 +117,38 @@ void ForwardingUnit::updateBranching(IFID_PR ifid, EXMEM_PR exmem, MEMWB_PR memw
         branchForwardA = 0x0;
         branchForwardB = 0x1;
     }
+    return;
 }
 void ForwardingUnit::updateJumping(IFID_PR ifid, EXMEM_PR exmem, MEMWB_PR memwb){
+    bool ifidIsRTypeJumpInstr = false;
+    bool ifidIsJTypeJumpInstr = false;
     
+    // Figure out which type of branch instr we have!
+    if (!ifid.instr.type.compare(J) || !ifid.instr.type.compare(JAL)){
+        ifidIsJTypeJumpInstr = true;
+    }
+    else if (!ifid.instr.type.compare(JR)){
+        ifidIsRTypeJumpInstr = true;
+    }
+    
+    if (ifidIsJTypeJumpInstr){
+        jumpForward = 0x0;
+    }
+    else if (ifidIsRTypeJumpInstr){
+        if (exmem.regWrite && (ifid.instr.rs == exmem.regFileWriteReg)){
+            jumpForward = 0x2;
+        }
+        else if (memwb.regWrite && (ifid.instr.rs == memwb.regFileWriteReg)){
+            jumpForward = 0x3;
+        }
+        else{
+            jumpForward = 0x1;
+        }
+    }
+    else{
+        jumpForward = 0x0;
+    }
+    
+    return;
 }
 
