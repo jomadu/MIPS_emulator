@@ -30,8 +30,9 @@ using namespace std;
 #define BLTZ "BLTZ"
 #define BLEZ "BLEZ"
 #define J   "J"
+#define JAL  "JAL"
 #define I   "I"
-#define MEMORYFILENAME "Regression-Testing/beq_test.txt"
+#define MEMORYFILENAME "Regression-Testing/jal_test.txt"
 
 
 // Memory
@@ -155,6 +156,12 @@ Instruction decode(unsigned int mc){
         case 0x0:
             myInstr.type = R;
             break;
+        case 0x2:
+            myInstr.type = J;
+            break;
+        case 0x3:
+            myInstr.type = JAL;
+            break;
         case 0x20:
             myInstr.type = LB;
             break;
@@ -219,23 +226,16 @@ void IF(){
     bool takeBranch;
     bool regFileReadDataBranchCondMet;
     bool branchInstrInID;
-    unsigned int branchTarget;
+    bool jumpInstrInID;
+    int branchTarget;
+    int jumpTarget;
     unsigned int iCacheData;
     bool ifidIsRTypeBranchInstr = false;
     bool ifidIsITypeBranchInstr = false;
     int branchCondArg1;
     int branchCondArg2;
     
-    
-    //Computing Branch Target and Branch indicator (PCSrc)
-    if (ifid.instr.immed >= 0x8000){
-        branchTarget = ((ifid.instr.immed | 0xFFFF0000) << 2) + ifid.pcnext;
-    }
-    else{
-        branchTarget = ((ifid.instr.immed) << 2) + ifid.pcnext;
-    }
-    
-    // figure out what the potential branch instruction is comparing
+    // Figure out what the potential branch instruction is comparing
     if ((!ifid.instr.type.compare(BEQ)) ||
         (!ifid.instr.type.compare(BNE))){
         ifidIsRTypeBranchInstr = true;
@@ -327,7 +327,14 @@ void IF(){
 	else {
 		regFileReadDataBranchCondMet = false;
 	}
-    //regFileReadDataCompare = (regFile.readReg(ifid.instr.rs) == regFile.readReg(ifid.instr.rt));
+    
+    // Computing Branch Target and Branch indicator (PCSrc)
+    if (ifid.instr.immed >= 0x8000){
+        branchTarget = ((ifid.instr.immed | 0xFFFF0000) << 2) + ifid.pcnext;
+    }
+    else{
+        branchTarget = ((ifid.instr.immed) << 2) + ifid.pcnext;
+    }
     branchInstrInID = (  !ifid.instr.type.compare(BEQ)) ||
                         (!ifid.instr.type.compare(BNE)) ||
                         (!ifid.instr.type.compare(BLEZ)) ||
@@ -335,16 +342,28 @@ void IF(){
                         (!ifid.instr.type.compare(BLTZ)); // Compare returns 0 if strings are equal
     takeBranch = (branchInstrInID && regFileReadDataBranchCondMet);
     
+    // Jump Stuff
+    jumpTarget = (ifid.pcnext & 0xF0000000) | (ifid.instr.addr << 2);
+    jumpInstrInID = (!ifid.instr.type.compare(J) || !ifid.instr.type.compare(JAL));
+    
     // PC input Mux
-    if (takeBranch){
-        // Branch in ID taken. Next PC is the branch target
-        if (!hazardUnit.stall){
-            PC = branchTarget;
+    if(!hazardUnit.stall){
+        if (takeBranch){
+            // Branch in ID taken. Next PC is the branch target
+            if (jumpInstrInID){
+                PC = jumpTarget;
+            }
+            else{
+                PC = branchTarget;
+            }
         }
-    }
-    else{
-        if (!hazardUnit.stall){
-            PC = ifid.pcnext;
+        else{
+            if (jumpInstrInID){
+                PC = jumpTarget;
+            }
+            else{
+                PC = ifid.pcnext;
+            }
         }
     }
     
@@ -356,6 +375,10 @@ void IF(){
     if (!icache.inPenalty){
         ifid_buff.pcnext = PC + 4;
         ifid_buff.instr = decode(iCacheData);
+        // This is a hack
+        if (!ifid_buff.instr.type.compare(JAL)){
+            regFile.writeReg(31, PC + 8);
+        }
     }
     else{
         ifid_buff.pcnext = PC;
@@ -422,6 +445,17 @@ void ID(){
         idex_buff.memToReg = false;
     }
     else if (!ifid.instr.type.compare(J)){
+        idex_buff.regDst = false;
+        idex_buff.ALUOp0 = false;
+        idex_buff.ALUOp1 = false;
+        idex_buff.ALUSrc = false;
+        idex_buff.branch = false;
+        idex_buff.memRead = false;
+        idex_buff.memWrite = false;
+        idex_buff.regWrite = false;
+        idex_buff.memToReg = false;
+    }
+    else if (!ifid.instr.type.compare(JAL)){
         idex_buff.regDst = false;
         idex_buff.ALUOp0 = false;
         idex_buff.ALUOp1 = false;
@@ -658,7 +692,7 @@ void EX(){
     }
     else if (!idex.ALUOp1 && idex.ALUOp0){
         // BEQ instructions
-        ALUControl = 0x6;
+        ALUControl = 0x4;
     }
     else{
         printf("Unable to determine ALU control lines.");
