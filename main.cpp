@@ -33,7 +33,7 @@ using namespace std;
 #define JAL  "JAL"
 #define JR "JR"
 #define I   "I"
-#define MEMORYFILENAME "Regression-Testing/jal_test.txt"
+#define MEMORYFILENAME "Regression-Testing/seb_test.txt"
 
 
 // Memory
@@ -209,6 +209,9 @@ Instruction decode(unsigned int mc){
 		case 0x1:
 			myInstr.type = BLTZ;
 			break;
+        case 0x1F:
+            myInstr.type = R;
+            break;
         default:
             myInstr.type = I;
             break;
@@ -569,17 +572,27 @@ void EX(){
     // Determine ALU Controls
     if (idex.ALUOp1 && !idex.ALUOp0){
         // R-type or I-Type instructions
-        // R-type
-        if (idex.instr.opcode == 0x0){
+        if (!idex.instr.type.compare(R)){
+            // R-type
             switch(idex.instr.funct){
                 //goes in order of green cheat sheet
                 case 0x20:
-                    //add
-                    ALUControl = 0x2;
+                    if (idex.instr.opcode == 0x1F){
+                        //seb
+                        ALUControl = 0x11;
+                    }
+                    else{
+                        //add
+                        ALUControl = 0x2;
+                    }
                     break;
                 case 0x24:
                     //and
                     ALUControl = 0x0;
+                    break;
+                case 0x26:
+                    //xor
+                    ALUControl = 0xF;
                     break;
                 case 0x27:
                     //nor
@@ -631,6 +644,18 @@ void EX(){
                     unsignedFlag = true;
                     ALUControl = 0x8;
                     break;
+                case 0xA:
+                    //movz
+                    ALUControl = 0xD;
+                    break;
+                case 0xB:
+                    //movn
+                    ALUControl = 0xE;
+                    break;
+                case 0xF:
+                    //lui
+                    ALUControl = 0x10;
+                    break;
                 default:
                     printf("Unknown R-type instruction with funct: 0x%X\nDefaulting to sll...\n", idex.instr.funct);
                     ALUControl = 0x4;
@@ -638,6 +663,7 @@ void EX(){
             }
         }
         else{
+            // I-Type
             switch(idex.instr.opcode){
                 case 0x8:
                     //addi
@@ -665,6 +691,10 @@ void EX(){
                     unsignedFlag = true;
                     ALUControl = 0x7;
                     break;
+                case 0xE:
+                    //xori
+                    ALUControl = 0xF;
+                    break;
                 default:
                     printf("Unknown I-type instruction with opcode: 0x%X\nDefaulting to sll...\n", idex.instr.opcode);
                     ALUControl = 0x4;
@@ -685,27 +715,6 @@ void EX(){
         printf("Unable to determine ALU control lines.");
         ALUControl = 0x4;
     }
-    
-    // ALUControl Lines
-    // and: 0x0 = 0b000000
-    // or : 0x1 = 0b000001
-    // add: 0x2 = 0b000010
-    // srl: 0x3 = 0b000011
-    // sll: 0x4 = 0b000100
-    // ?  : 0x5 = 0b000101 - for now it will be for div
-    // sub: 0x6 = 0b000110
-    // slt: 0x7 = 0b000111
-    // ?  : 0x8 = 0b001000 - for now it will be for mult
-    // ?  : 0x9 = 0b001001
-    // ?  : 0xA = 0b001010
-    // ?  : 0xB = 0b001011
-    // nor: 0xC = 0b001100
-    // ?  : 0xD = 0b001101
-    // ?  : 0xE = 0b001110
-    // ?  : 0xF = 0b001111
-    // .
-    // .
-    // .
     
     switch (ALUControl) {
         case 0x0:
@@ -787,6 +796,39 @@ void EX(){
         case 0xC:
             // Bitwise NOR
             exmem_buff.ALUResult = ~(ALUInput1 | ALUInput2);
+            break;
+        case 0xD:
+            // movz
+            // moves rs to rd if rt = 0
+            exmem_buff.ALUResult = ALUInput1;
+            if (ALUInput2 != 0){
+                exmem_buff.regWrite = false;
+            }
+            break;
+        case 0xE:
+            // movn
+            // moves rs to rd if rt != 0
+            exmem_buff.ALUResult = ALUInput1;
+            if (ALUInput2 == 0){
+                exmem_buff.regWrite = false;
+            }
+            break;
+        case 0xF:
+            //BITWISE xor
+            exmem_buff.ALUResult = (ALUInput1 ^ ALUInput2);
+            break;
+        case 0x10:
+            //lui
+            exmem_buff.ALUResult = (ALUInput2 << 16);
+            break;
+        case 0x11:
+            //seb
+            if ((ALUInput2U & 0xFF) >= 0x80){
+                exmem_buff.ALUResult = (ALUInput2U | 0xFFFFFF00);
+            }
+            else{
+                exmem_buff.ALUResult = (ALUInput2U & 0xFF);
+            }
             break;
         default:
             perror("Unknown ALU Controls\n");
