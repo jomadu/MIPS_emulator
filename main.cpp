@@ -33,7 +33,7 @@ using namespace std;
 #define JAL  "JAL"
 #define JR "JR"
 #define I   "I"
-#define MEMORYFILENAME "Regression-Testing/xori_test.txt"
+#define MEMORYFILENAME "Regression-Testing/addu_test.txt"
 
 
 // Memory
@@ -589,6 +589,11 @@ void EX(){
                         //add
                         ALUControl = 0x2;
                     }
+                    break;
+                case 0x21:
+                    //addu
+                    unsignedFlag = true;
+                    ALUControl = 0x2;
                     break;
                 case 0x24:
                     //and
