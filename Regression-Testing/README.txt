@@ -28,19 +28,17 @@ lh - tested, works
 sw - tested, works 
 sh - tested, works
 sb - tested, works
-beq - tested, works
+beq - tested, works (Max - I think we're stalling the right number of cycles, worth verifying though. This applies to all branches.)
 bne - tested, works
 bgtz - tested, works
-bltz - tested. works
+bltz - tested, works
 blez - tested, works
-
-***************Missing from this list***************
-j - test written
-jal - test written (combined with jr)
-jr - test written (combined with jal)
-movn - test written
-movz - test written
-xor - test written
-xori - test written
-lui - test written
-seb - test written
+j - tested, works
+jal - tested, works
+jr - tested, works (combined with jal_test.txt)
+movn - test written, works! :D
+movz - test written, works! :D
+xor - test written, works! :D
+xori - test written, works! :D
+lui - test written, works! :D
+seb - test written, works! :D

@@ -1,11 +1,11 @@
 0x2009FFFF  // addi $t1 $zero 0xFFFF -> t1 = 0xFFFFFFFF
 0x200AAAAA  // addi $t2 $zero 0xAAAA -> t2 = 0xFFFFAAAA
 0x200B5555  // addi $t3 $zero 0x5555 -> t3 = 0x5555
-0x01098026  // xor $s0, $t0, $t1 -> s0 = 0xFFFFFFFF
-0x012A8826  // xor $s1, $t1, $t2 -> s1 = 0x5555
-0x014B9026  // xor $s2, $t2, $t3 -> s2 = 0xFFFFFFFF
-0x010A9826  // xor $s3, $t0, $t2 -> s3 = 0xFFFFAAAA
-0x012BA026  // xor $s4, $t1, $t3 -> s4 = 0xFFFFAAAA
+0x01098026  // xor $s0, $t0, $t1 -> s0 = 0xFFFFFFFF (pass)
+0x012A8826  // xor $s1, $t1, $t2 -> s1 = 0x5555 (pass)
+0x014B9026  // xor $s2, $t2, $t3 -> s2 = 0xFFFFFFFF (pass)
+0x010A9826  // xor $s3, $t0, $t2 -> s3 = 0xFFFFAAAA (pass)
+0x012BA026  // xor $s4, $t1, $t3 -> s4 = 0xFFFFAAAA (pass)
 0x00000000
 0x00000000
 0x00000000
