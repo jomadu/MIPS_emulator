@@ -36,7 +36,7 @@ public:
     unsigned int loadBU(unsigned int addr);
     int loadB(unsigned int addr);
     void storeW(unsigned int dataW, unsigned int addr);
-    void storeHW(unsigned int dataHW, unsigned int addr, int offset);
+    void storeHW(unsigned int dataHW, unsigned int addr);
     void storeB(unsigned int dataB, unsigned int addr);
     int addr2idx(unsigned int addr);
     void importFile(char * iFile, unsigned int &pc);

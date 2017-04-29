@@ -33,7 +33,7 @@ using namespace std;
 #define JAL  "JAL"
 #define JR "JR"
 #define I   "I"
-#define MEMORYFILENAME "Regression-Testing/addu_test.txt"
+#define MEMORYFILENAME "Regression-Testing/sw_test.txt"
 
 
 // Memory
@@ -903,12 +903,12 @@ void startup(){
     char file [] = MEMORYFILENAME;
     memory.importFile(file, PC);
     ifid.pcnext = PC;
-    icache = Cache(16, 2, memory, "iCache");
-    dcache = Cache(16, 2, memory, "dCache");
+    icache = Cache(I_CACHE_SIZE, memory, "iCache");
+    dcache = Cache(D_CACHE_SIZE, memory, "dCache");
 }
 int main(int argc, const char * argv[]) {
     startup();
-    for (int i = 0; i < 28; i++){
+    for (int i = 0; i < 200; i++){
         executeClockCycle();
     }
     return 0;

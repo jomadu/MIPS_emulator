@@ -8,20 +8,24 @@
 
 #include "Cache.hpp"
 #include "Memory.hpp"
-
+#include "Testbench.hpp"
 
 Cache::Cache(){}
 
-Cache::Cache(int nSets, int penalty, Memory &mem, string nm){
-    numSets = nSets;
+Cache::Cache(int nBytes, Memory &mem, string nm){
+    numSets = nBytes/4;
     sets = new Set[numSets];
-    missPenalty = penalty-1;
+    totalPenalty = 0;
+    readPenalty = CACHE_R_STARTUP_P + (CACHE_SET_FILL-1)*CACHE_R_SUBSQT_P;
+    writePenalty = CACHE_W_STARTUP_P + (CACHE_SET_FILL-1)*CACHE_W_SUBSQT_P;
     name = nm;
     penaltyCounter = 0;
     inPenalty = false;
     
+    writtenThrough = false;
+    
     numByteOffsetBits = ceil(log2(WORD_SIZE/8));
-    numIdxBits = ceil(log2(nSets));
+    numIdxBits = ceil(log2(numSets));
     numTagBits = WORD_SIZE-numIdxBits-numByteOffsetBits;
     
     tagMask = (0xFFFFFFFF << (WORD_SIZE-numTagBits));
@@ -37,57 +41,9 @@ unsigned int Cache::loadW(unsigned int addr, Memory &mem){
     
     decodeCacheAddr(tag, idx, byteOffset, addr);
     
-    // Are we penaltyCounter?
-    // No
-    //   Is the data valid with correct tag?
-    //   Yes
-    //     return the data and true
-    //   No
-    //     load the data into the iCache
-    //     start the penaltyCounter Counter
-    //     return the data at block idx and false
-    // Yes
-    //   Decrement the penaltyCounter Counter
-    //   After decrementing, is the penaltyCounter Counter now 0?
-    //   Yes
-    //     set the loaded data valid bits true
-    //     so that next time, we return valid data
-    //   return the data at block idx and false
+    inPenalty = evalLoadInPenalty(tag, idx, byteOffset, addr, mem);
     
-    if (penaltyCounter == 0){
-        if (sets[idx].valid && (sets[idx].tag == tag)){
-            if (debug){
-                printf("%s: Hit!\n\n", name.c_str());
-            }
-            inPenalty = false;
-            return sets[idx].data;
-        }
-        else{
-            if (debug){
-                printf("%s: Miss! Block filling and starting penalty.\n\n", name.c_str());
-            }
-            blockFill(addr, NUM_BLOCK_FILL, mem);
-            penaltyCounter = missPenalty;
-            
-            inPenalty = true;
-            return sets[idx].data;
-        }
-    }
-    else{
-        if (debug){
-            printf("%s: Miss! At Penalty = %i\n\n", name.c_str(), penaltyCounter);
-        }
-        penaltyCounter--;
-        if (penaltyCounter == 0){
-            if (debug){
-                printf("%s: Penalty over. Validating lines for next request.\n\n", name.c_str());
-            }
-            validateBlocks(addr, NUM_BLOCK_FILL);
-        }
-        
-        inPenalty = true;
-        return sets[idx].data;
-    }
+    return sets[idx].data;
 }
 
 unsigned int Cache::loadHWU(unsigned int addr, Memory &mem){
@@ -97,99 +53,26 @@ unsigned int Cache::loadHWU(unsigned int addr, Memory &mem){
     
     decodeCacheAddr(tag, idx, byteOffset, addr);
     
-    // Are we penaltyCounter?
-    // No
-    //   Is the data valid with correct tag?
-    //   Yes
-    //     return the data and true
-    //   No
-    //     load the data into the iCache
-    //     start the penaltyCounter Counter
-    //     return the data at block idx and false
-    // Yes
-    //   Decrement the penaltyCounter Counter
-    //   After decrementing, is the penaltyCounter Counter now 0?
-    //   Yes
-    //     set the loaded data valid bits true
-    //     so that next time, we return valid data
-    //   return the data at block idx and false
+    inPenalty = evalLoadInPenalty(tag, idx, byteOffset, addr, mem);
     
-    if (penaltyCounter == 0){
-        if (sets[idx].valid && (sets[idx].tag == tag)){
-            if (debug){
-                printf("%s: Hit!\n\n", name.c_str());
-            }
-            inPenalty = false;
-            switch(byteOffset % 4){
-                case 0:
-                    return (HWL_MASK & sets[idx].data) >> 0;
-                case 1:
-                    printf("Halfword addr was not halfword aligned: 0x%X\n", addr);
-                    return (HWL_MASK & sets[idx].data) >> 0;
-                case 2:
-                    return (HWH_MASK & sets[idx].data) >> 16;
-                case 3:
-                    printf("Halfword addr was not halfword aligned: 0x%X\n", addr);
-                    return (HWH_MASK & sets[idx].data) >> 16;
-                default:
-                    printf("Halfword addr was not halfword aligned: 0x%X\n", addr);
-                    return (HWL_MASK & sets[idx].data) >> 0;
-            }
-
-        }
-        else{
-            if (debug){
-                printf("%s: Miss! Block filling and starting penalty.\n\n", name.c_str());
-            }
-            blockFill(addr, NUM_BLOCK_FILL, mem);
-            penaltyCounter = missPenalty;
-            inPenalty = true;
-            switch(byteOffset % 4){
-                case 0:
-                    return (HWL_MASK & sets[idx].data) >> 0;
-                case 1:
-                    printf("Halfword addr was not halfword aligned: 0x%X\n", addr);
-                    return (HWL_MASK & sets[idx].data) >> 0;
-                case 2:
-                    return (HWH_MASK & sets[idx].data) >> 16;
-                case 3:
-                    printf("Halfword addr was not halfword aligned: 0x%X\n", addr);
-                    return (HWH_MASK & sets[idx].data) >> 16;
-                default:
-                    printf("Halfword addr was not halfword aligned: 0x%X\n", addr);
-                    return (HWL_MASK & sets[idx].data) >> 0;
-            }
-        }
-    }
-    else{
-        if (debug){
-            printf("%s: Miss! At Penalty = %i\n\n", name.c_str(), penaltyCounter);
-        }
-        penaltyCounter--;
-        if (penaltyCounter == 0){
-            if (debug){
-                printf("%s: Penalty over. Validating lines for next request.\n\n", name.c_str());
-            }
-            validateBlocks(addr, NUM_BLOCK_FILL);
-        }
-        inPenalty = true;
-        switch(byteOffset % 4){
-            case 0:
-                return (HWL_MASK & sets[idx].data) >> 0;
-            case 1:
-                printf("Halfword addr was not halfword aligned: 0x%X\n", addr);
-                return (HWL_MASK & sets[idx].data) >> 0;
-            case 2:
-                return (HWH_MASK & sets[idx].data) >> 16;
-            case 3:
-                printf("Halfword addr was not halfword aligned: 0x%X\n", addr);
-                return (HWH_MASK & sets[idx].data) >> 16;
-            default:
-                printf("Halfword addr was not halfword aligned: 0x%X\n", addr);
-                return (HWL_MASK & sets[idx].data) >> 0;
-        }
+    // Always return a value, even if we are in penalty.
+    switch(byteOffset % 4){
+        case 0:
+            return (HWL_MASK & sets[idx].data) >> 0;
+        case 1:
+            printf("Halfword addr was not halfword aligned: 0x%X\n", addr);
+            return (HWL_MASK & sets[idx].data) >> 0;
+        case 2:
+            return (HWH_MASK & sets[idx].data) >> 16;
+        case 3:
+            printf("Halfword addr was not halfword aligned: 0x%X\n", addr);
+            return (HWH_MASK & sets[idx].data) >> 16;
+        default:
+            printf("Halfword addr was not halfword aligned: 0x%X\n", addr);
+            return (HWL_MASK & sets[idx].data) >> 0;
     }
 }
+
 
 int Cache::loadHW(unsigned int addr, Memory &mem){
     unsigned int data;
@@ -211,89 +94,20 @@ unsigned int Cache::loadBU(unsigned int addr, Memory &mem){
     unsigned int byteOffset;
     
     decodeCacheAddr(tag, idx, byteOffset, addr);
-    
-    // Are we penaltyCounter?
-    // No
-    //   Is the data valid with correct tag?
-    //   Yes
-    //     return the data and true
-    //   No
-    //     load the data into the iCache
-    //     start the penaltyCounter Counter
-    //     return the data at block idx and false
-    // Yes
-    //   Decrement the penaltyCounter Counter
-    //   After decrementing, is the penaltyCounter Counter now 0?
-    //   Yes
-    //     set the loaded data valid bits true
-    //     so that next time, we return valid data
-    //   return the data at block idx and false
-    
-    if (penaltyCounter == 0){
-        if (sets[idx].valid && (sets[idx].tag == tag)){
-            if (debug){
-                printf("%s: Hit!\n\n", name.c_str());
-            }
-            inPenalty = false;
-            switch(byteOffset % 4){
-                case 0:
-                    return (BYTE0_MASK & sets[idx].data) >> 0;
-                case 1:
-                    return (BYTE1_MASK & sets[idx].data) >> 8;
-                case 2:
-                    return (BYTE2_MASK & sets[idx].data) >> 16;
-                case 3:
-                    return (BYTE3_MASK & sets[idx].data) >> 24;
-                default:
-                    return (BYTE0_MASK & sets[idx].data) >> 0;
-            }
-        }
-        else{
-            if (debug){
-                printf("%s: Miss! Block filling and starting penalty.\n\n", name.c_str());
-            }
-            blockFill(addr, NUM_BLOCK_FILL, mem);
-            penaltyCounter = missPenalty;
-            inPenalty = true;
 
-            switch(byteOffset % 4){
-                case 0:
-                    return (BYTE0_MASK & sets[idx].data) >> 0;
-                case 1:
-                    return (BYTE1_MASK & sets[idx].data) >> 8;
-                case 2:
-                    return (BYTE2_MASK & sets[idx].data) >> 16;
-                case 3:
-                    return (BYTE3_MASK & sets[idx].data) >> 24;
-                default:
-                    return (BYTE0_MASK & sets[idx].data) >> 0;
-            }
-        }
-    }
-    else{
-        if (debug){
-            printf("%s: Miss! At Penalty = %i\n\n", name.c_str(), penaltyCounter);
-        }
-        penaltyCounter--;
-        if (penaltyCounter == 0){
-            if (debug){
-                printf("%s: Penalty over. Validating lines for next request.\n\n", name.c_str());
-            }
-            validateBlocks(addr, NUM_BLOCK_FILL);
-        }
-        inPenalty = true;
-        switch(byteOffset % 4){
-            case 0:
-                return (BYTE0_MASK & sets[idx].data) >> 0;
-            case 1:
-                return (BYTE1_MASK & sets[idx].data) >> 8;
-            case 2:
-                return (BYTE2_MASK & sets[idx].data) >> 16;
-            case 3:
-                return (BYTE3_MASK & sets[idx].data) >> 24;
-            default:
-                return (BYTE0_MASK & sets[idx].data) >> 0;
-        }
+    inPenalty = evalLoadInPenalty(tag, idx, byteOffset, addr, mem);
+    
+    switch(byteOffset % 4){
+        case 0:
+            return (BYTE0_MASK & sets[idx].data) >> 0;
+        case 1:
+            return (BYTE1_MASK & sets[idx].data) >> 8;
+        case 2:
+            return (BYTE2_MASK & sets[idx].data) >> 16;
+        case 3:
+            return (BYTE3_MASK & sets[idx].data) >> 24;
+        default:
+            return (BYTE0_MASK & sets[idx].data) >> 0;
     }
 }
 
@@ -310,227 +124,355 @@ int Cache::loadB(unsigned int addr, Memory &mem){
     }
 }
 
-void Cache::storeW(unsigned int dataW, unsigned int addr, Memory &mem){
+void Cache::storeW(unsigned int data, unsigned int addr, Memory &mem){
     unsigned int idx;
     unsigned int tag;
     unsigned int byteOffset;
     
     decodeCacheAddr(tag, idx, byteOffset, addr);
     
-    // Are we penaltyCounter?
-    // No
-    //   Is the data at idx valid and have the correct tag?
-    //   Yes
-    //     Update the data with dataW
-    //   No
-    //     We need to store valid data in fill range
-    //     Bring in new blocks
-    //     Then update the data with dataW
-    //     Start Penalty
-    // Yes
-    //   Decrement the penaltyCounter Counter
-    //   After decrementing, is the penaltyCounter Counter now 0?
-    //   Yes
-    //     validate the loaded data, so that next time
-    //     we update the data with dataW
-    //   return false
-    
     if (penaltyCounter == 0){
-        if (sets[idx].valid && (sets[idx].tag == tag)){
-            if (debug){
-                printf("%s: Hit!\n\n", name.c_str());
+        if (sets[idx].valid && sets[idx].tag == tag){
+            if (CACHE_WRITE_POLICY == 0){
+                // Write Back
+                if (DEBUG){
+                    printf("%s: Hit!\n\n", name.c_str());
+                }
+                sets[idx].data = data;
+                inPenalty = false;
             }
-            sets[idx].data = dataW;
-            // if write through policy
-            //  write dataW to memory
-            //  penaltyCounter = missPenalty
-            //  inPenalty = true
-            // else
-            //  inpenalty = false
-            inPenalty = false;
-            return;
+            else{
+                // Write Through
+                if (writtenThrough){
+                    if (debug){
+                        printf("%s: Hit!\n\n", name.c_str());
+                    }
+                    writtenThrough = false;
+                    inPenalty = false;
+                }
+                else{
+                    if (DEBUG){
+                        printf("%s: Writing Through to Memory. Starting Penalty.\n", name.c_str());
+                    }
+                    sets[idx].data = data;
+                    sets[idx].valid = false;
+                    mem.storeW(data, addr);
+                    totalPenalty = writePenalty;
+                    penaltyCounter = totalPenalty - 1;
+                    if (DEBUG){
+                        printf("%s: Penalty at %i!\n\n", name.c_str(), penaltyCounter);
+                    }
+                    writtenThrough = true;
+                    inPenalty = true;
+                }
+            }
         }
         else{
-            if (debug){
-                printf("%s: Miss! Block filling and starting penalty.\n\n",name.c_str());
+            if (CACHE_WRITE_POLICY == 0){
+                // Write Back
+                if (sets[idx].valid){
+                    totalPenalty = writePenalty + readPenalty;
+                }
+                else{
+                    totalPenalty = readPenalty;
+                }
             }
-            blockFill(addr, NUM_BLOCK_FILL, mem);
-            penaltyCounter = missPenalty;
+            else{
+                // Write Through
+                totalPenalty = readPenalty;
+            }
+            if (DEBUG){
+                printf("%s: Miss! Block Filling and Starting Penalty.\n", name.c_str());
+            }
+            penaltyCounter = totalPenalty - 1;
+            if (DEBUG){
+                printf("%s: Penalty at %i!\n\n", name.c_str(), penaltyCounter);
+            }
             inPenalty = true;
-            return;
+            blockFill(addr, CACHE_SET_FILL, mem);
         }
     }
     else{
-        if (debug){
-            printf("%s: Miss! At Penalty = %i\n\n", name.c_str(), penaltyCounter);
+        penaltyCounter --;
+        if (DEBUG){
+            printf("%s: Miss! Penalty now at %i\n", name.c_str(), penaltyCounter);
         }
-        penaltyCounter--;
-        if (penaltyCounter == 0){
-            if (debug){
-                printf("%s: Penalty over. Validating lines for next request.\n\n", name.c_str());
+        if(penaltyCounter == 0){
+            if (CACHE_WRITE_POLICY == 0){
+                // Write Back
+                if (DEBUG){
+                    printf("%s: Penalty Over! Validating previously filled blocks.\n\n", name.c_str());
+                }
+                validateBlocks(addr, CACHE_SET_FILL);
             }
-            validateBlocks(addr, NUM_BLOCK_FILL);
+            else{
+                // Write Through
+                if (writtenThrough){
+                    if (DEBUG){
+                        printf("%s: Penalty Over! Validating written through block.\n\n", name.c_str());
+                    }
+                    validateBlocks(addr, 1);
+                }
+                else{
+                    if (DEBUG){
+                        printf("%s: Penalty Over! Validating previously filled blocks.\n\n", name.c_str());
+                    }
+                    validateBlocks(addr, CACHE_SET_FILL);
+                }
+            }
         }
         inPenalty = true;
-        return;
     }
+    return;
 }
+
 
 void Cache::storeHW(unsigned int dataHW, unsigned int addr, Memory &mem){
     unsigned int idx;
     unsigned int tag;
     unsigned int byteOffset;
+    unsigned int data;
     
     decodeCacheAddr(tag, idx, byteOffset, addr);
     
-    // Are we penaltyCounter?
-    // No
-    //   Is the data at idx valid and have the correct tag?
-    //   Yes
-    //     Update the data with dataW
-    //   No
-    //     We need to store valid data in fill range
-    //     Bring in new blocks
-    //     Then update the data with dataW
-    //     Start Penalty
-    // Yes
-    //   Decrement the penaltyCounter Counter
-    //   After decrementing, is the penaltyCounter Counter now 0?
-    //   Yes
-    //     validate the loaded data, so that next time
-    //     we update the data with dataW
-    //   return false
+    // evaluate what data we'll be writing
+    switch(byteOffset % 4){
+        case 0:
+            data = (sets[idx].data & HWH_MASK) | (dataHW & HWL_MASK);
+            break;
+        case 1:
+            printf("Halfword addr was not halfword aligned: 0x%X\n", addr);
+            data = (sets[idx].data & HWH_MASK) | (dataHW & HWL_MASK);
+            break;
+        case 2:
+            data = ((dataHW & HWL_MASK) << 16) | (sets[idx].data & HWL_MASK);
+            break;
+        case 3:
+            printf("Halfword addr was not halfword aligned: 0x%X\n", addr);
+            data = ((dataHW & HWL_MASK) << 16) | (sets[idx].data & HWL_MASK);
+            break;
+        default:
+            printf("Halfword addr was not halfword aligned: 0x%X\n", addr);
+            data = (sets[idx].data & HWH_MASK) | (dataHW & HWL_MASK);
+            break;
+    }
     
     if (penaltyCounter == 0){
-        if (sets[idx].valid && (sets[idx].tag == tag)){
-            if (debug){
-                printf("%s: Hit!\n\n", name.c_str());
+        if (sets[idx].valid && sets[idx].tag == tag){
+            if (CACHE_WRITE_POLICY == 0){
+                // Write Back
+                if (DEBUG){
+                    printf("%s: Hit!\n\n", name.c_str());
+                }
+                sets[idx].data = data;
+                inPenalty = false;
             }
-            
-            switch(byteOffset % 4){
-                case 0:
-                    sets[idx].data = (sets[idx].data & HWH_MASK) | (dataHW & HWL_MASK);
-                    break;
-                case 1:
-                    printf("Halfword addr was not halfword aligned: 0x%X\n", addr);
-                    sets[idx].data = (sets[idx].data & HWH_MASK) | (dataHW & HWL_MASK);
-                    break;
-                case 2:
-                    sets[idx].data = ((dataHW & HWL_MASK) << 16) | (sets[idx].data & HWL_MASK);
-                    break;
-                case 3:
-                    printf("Halfword addr was not halfword aligned: 0x%X\n", addr);
-                    sets[idx].data = ((dataHW & HWL_MASK) << 16) | (sets[idx].data & HWL_MASK);
-                    break;
-                default:
-                    printf("Halfword addr was not halfword aligned: 0x%X\n", addr);
-                    sets[idx].data = (sets[idx].data & HWH_MASK) | (dataHW & HWL_MASK);
-                    break;
+            else{
+                // Write Through
+                if (writtenThrough){
+                    if (debug){
+                        printf("%s: Hit!\n\n", name.c_str());
+                    }
+                    writtenThrough = false;
+                    inPenalty = false;
+                }
+                else{
+                    if (DEBUG){
+                        printf("%s: Writing Through to Memory. Starting Penalty.\n", name.c_str());
+                    }
+                    sets[idx].data = data;
+                    sets[idx].valid = false;
+                    mem.storeHW(data, addr);
+                    totalPenalty = writePenalty;
+                    penaltyCounter = totalPenalty - 1;
+                    if (DEBUG){
+                        printf("%s: Penalty at %i!\n\n", name.c_str(), penaltyCounter);
+                    }
+                    writtenThrough = true;
+                    inPenalty = true;
+                }
             }
-            inPenalty = false;
-            return;
         }
         else{
-            if (debug){
-                printf("%s: Miss! Block filling and starting penalty.\n\n",name.c_str());
+            if (CACHE_WRITE_POLICY == 0){
+                // Write Back
+                if (sets[idx].valid){
+                    totalPenalty = writePenalty + readPenalty;
+                }
+                else{
+                    totalPenalty = readPenalty;
+                }
             }
-            blockFill(addr, NUM_BLOCK_FILL, mem);
-            penaltyCounter = missPenalty;
+            else{
+                // Write Through
+                totalPenalty = readPenalty;
+            }
+            if (DEBUG){
+                printf("%s: Miss! Block Filling and Starting Penalty.\n", name.c_str());
+            }
+            penaltyCounter = totalPenalty - 1;
+            if (DEBUG){
+                printf("%s: Penalty at %i!\n\n", name.c_str(), penaltyCounter);
+            }
             inPenalty = true;
-            return;
+            blockFill(addr, CACHE_SET_FILL, mem);
         }
     }
     else{
-        if (debug){
-            printf("%s: Miss! At Penalty = %i\n\n", name.c_str(), penaltyCounter);
+        penaltyCounter --;
+        if (DEBUG){
+            printf("%s: Miss! Penalty now at %i\n", name.c_str(), penaltyCounter);
         }
-        penaltyCounter--;
-        if (penaltyCounter == 0){
-            if (debug){
-                printf("%s: Penalty over. Validating lines for next request.\n\n", name.c_str());
+        if(penaltyCounter == 0){
+            if (CACHE_WRITE_POLICY == 0){
+                // Write Back
+                if (DEBUG){
+                    printf("%s: Penalty Over! Validating previously filled blocks.\n\n", name.c_str());
+                }
+                validateBlocks(addr, CACHE_SET_FILL);
             }
-            validateBlocks(addr, NUM_BLOCK_FILL);
+            else{
+                // Write Through
+                if (writtenThrough){
+                    if (DEBUG){
+                        printf("%s: Penalty Over! Validating written through block.\n\n", name.c_str());
+                    }
+                    validateBlocks(addr, 1);
+                }
+                else{
+                    if (DEBUG){
+                        printf("%s: Penalty Over! Validating previously filled blocks.\n\n", name.c_str());
+                    }
+                    validateBlocks(addr, CACHE_SET_FILL);
+                }
+            }
         }
         inPenalty = true;
-        return;
     }
+    return;
 }
 
 void Cache::storeB(unsigned int dataB, unsigned int addr, Memory &mem){
     unsigned int idx;
     unsigned int tag;
     unsigned int byteOffset;
+    unsigned int data;
     
     decodeCacheAddr(tag, idx, byteOffset, addr);
     
-    // Are we penaltyCounter?
-    // No
-    //   Is the data at idx valid and have the correct tag?
-    //   Yes
-    //     Update the data with dataW
-    //   No
-    //     We need to store valid data in fill range
-    //     Bring in new blocks
-    //     Then update the data with dataW
-    //     Start Penalty
-    // Yes
-    //   Decrement the penaltyCounter Counter
-    //   After decrementing, is the penaltyCounter Counter now 0?
-    //   Yes
-    //     validate the loaded data, so that next time
-    //     we update the data with dataW
-    //   return false
-    
+    // evaluate what data we'll be writing
+    switch(byteOffset % 4){
+        case 0:
+            data = (sets[idx].data & 0xFFFFFF00) | (dataB & BYTE0_MASK);
+            break;
+        case 1:
+            data = (sets[idx].data & 0xFFFF00FF) | ((dataB & BYTE0_MASK) << 8);
+            break;
+        case 2:
+            data = (sets[idx].data & 0xFF00FFFF) | ((dataB & BYTE0_MASK) << 16);
+            break;
+        case 3:
+            data = (sets[idx].data & 0x00FFFFFF) | ((dataB & BYTE0_MASK) << 24);
+            break;
+        default:
+            data = (sets[idx].data & 0xFFFFFF00) | (dataB & BYTE0_MASK);
+            break;
+    }
     if (penaltyCounter == 0){
-        if (sets[idx].valid && (sets[idx].tag == tag)){
-            if (debug){
-                printf("%s: Hit!\n\n", name.c_str());
+        if (sets[idx].valid && sets[idx].tag == tag){
+            if (CACHE_WRITE_POLICY == 0){
+                // Write Back
+                if (DEBUG){
+                    printf("%s: Hit!\n\n", name.c_str());
+                }
+                sets[idx].data = data;
+                inPenalty = false;
             }
-            
-            switch(byteOffset % 4){
-                case 0:
-                    sets[idx].data = (sets[idx].data & 0xFFFFFF00) | (dataB & BYTE0_MASK);
-                    break;
-                case 1:
-                    sets[idx].data = (sets[idx].data & 0xFFFF00FF) | ((dataB & BYTE0_MASK) << 8);
-                    break;
-                case 2:
-                    sets[idx].data = (sets[idx].data & 0xFF00FFFF) | ((dataB & BYTE0_MASK) << 16);
-                    break;
-                case 3:
-                    sets[idx].data = (sets[idx].data & 0x00FFFFFF) | ((dataB & BYTE0_MASK) << 24);
-                    break;
-                default:
-                    break;
+            else{
+                // Write Through
+                if (writtenThrough){
+                    if (debug){
+                        printf("%s: Hit!\n\n", name.c_str());
+                    }
+                    writtenThrough = false;
+                    inPenalty = false;
+                }
+                else{
+                    if (DEBUG){
+                        printf("%s: Writing Through to Memory. Starting Penalty.\n", name.c_str());
+                    }
+                    sets[idx].data = data;
+                    sets[idx].valid = false;
+                    mem.storeB(data, addr);
+                    totalPenalty = writePenalty;
+                    penaltyCounter = totalPenalty - 1;
+                    if (DEBUG){
+                        printf("%s: Penalty at %i!\n\n", name.c_str(), penaltyCounter);
+                    }
+                    writtenThrough = true;
+                    inPenalty = true;
+                }
             }
-            inPenalty = false;
-            return;
         }
         else{
-            if (debug){
-                printf("%s: Miss! Block filling and starting penalty.\n\n",name.c_str());
+            if (CACHE_WRITE_POLICY == 0){
+                // Write Back
+                if (sets[idx].valid){
+                    totalPenalty = writePenalty + readPenalty;
+                }
+                else{
+                    totalPenalty = readPenalty;
+                }
             }
-            blockFill(addr, NUM_BLOCK_FILL, mem);
-            penaltyCounter = missPenalty;
+            else{
+                // Write Through
+                totalPenalty = readPenalty;
+            }
+            if (DEBUG){
+                printf("%s: Miss! Block Filling and Starting Penalty.\n", name.c_str());
+            }
+            penaltyCounter = totalPenalty - 1;
+            if (DEBUG){
+                printf("%s: Penalty at %i!\n\n", name.c_str(), penaltyCounter);
+            }
             inPenalty = true;
-            return;
+            blockFill(addr, CACHE_SET_FILL, mem);
         }
     }
     else{
-        if (debug){
-            printf("%s: Miss! At Penalty = %i\n\n", name.c_str(), penaltyCounter);
+        penaltyCounter --;
+        if (DEBUG){
+            printf("%s: Miss! Penalty now at %i\n", name.c_str(), penaltyCounter);
         }
-        penaltyCounter--;
-        if (penaltyCounter == 0){
-            if (debug){
-                printf("%s: Penalty over. Validating lines for next request.\n\n", name.c_str());
+        if(penaltyCounter == 0){
+            if (CACHE_WRITE_POLICY == 0){
+                // Write Back
+                if (DEBUG){
+                    printf("%s: Penalty Over! Validating previously filled blocks.\n\n", name.c_str());
+                }
+                validateBlocks(addr, CACHE_SET_FILL);
             }
-            validateBlocks(addr, NUM_BLOCK_FILL);
+            else{
+                // Write Through
+                if (writtenThrough){
+                    if (DEBUG){
+                        printf("%s: Penalty Over! Validating written through block.\n\n", name.c_str());
+                    }
+                    validateBlocks(addr, 1);
+                }
+                else{
+                    if (DEBUG){
+                        printf("%s: Penalty Over! Validating previously filled blocks.\n\n", name.c_str());
+                    }
+                    validateBlocks(addr, CACHE_SET_FILL);
+                }
+            }
         }
         inPenalty = true;
-        return;
     }
+    return;
 }
+
 
 void Cache::blockFill(unsigned int addr, unsigned int nSets, Memory mem){
     unsigned int idx;
@@ -540,15 +482,15 @@ void Cache::blockFill(unsigned int addr, unsigned int nSets, Memory mem){
     
     for (int i = 0; i < nSets; i++){
         decodeCacheAddr(tag, idx, byteOffset, addr);
-        // if write-back policy
-        if (sets[idx].valid){
-            if (debug){
-                printf("%s: Storing valid data at idx: 0x%X to memory.\n",name.c_str(), idx);
+        if (CACHE_WRITE_POLICY == 0){
+            if (sets[idx].valid){
+                if (debug){
+                    printf("%s: Storing valid data at idx: 0x%X to memory.\n",name.c_str(), idx);
+                }
+                memAddr = encodeCacheAddr(sets[idx].tag, idx, byteOffset);
+                mem.storeW(sets[idx].data, memAddr);
             }
-            memAddr = encodeCacheAddr(sets[idx].tag, idx, byteOffset);
-            mem.storeW(sets[idx].data, memAddr);
         }
-        //
         sets[idx].data = mem.loadW(addr);
         sets[idx].tag = tag;
         sets[idx].valid = false;
@@ -607,5 +549,53 @@ unsigned int Cache::encodeCacheAddr(unsigned int tag, unsigned int idx, unsigned
             (idx << (numByteOffsetBits)) |
             (bOffset);
     return addr;
+}
+
+bool Cache::evalLoadInPenalty(unsigned int tag, unsigned int idx, unsigned int byteOffset, unsigned int addr, Memory mem){
+    if (penaltyCounter == 0){
+        if (sets[idx].valid && sets[idx].tag == tag){
+            if (DEBUG){
+                printf("%s: Hit!\n\n", name.c_str());
+            }
+            return false;
+        }
+        else{
+            if (CACHE_WRITE_POLICY == 0){
+                // Write Back
+                if (sets[idx].valid){
+                    totalPenalty = writePenalty + readPenalty;
+                }
+                else{
+                    totalPenalty = readPenalty;
+                }
+            }
+            else{
+                // Write Through
+                totalPenalty = readPenalty;
+            }
+            if (DEBUG){
+                printf("%s: Miss! Block Filling and Starting Penalty.\n", name.c_str());
+            }
+            penaltyCounter = totalPenalty - 1;
+            if (DEBUG){
+                printf("%s: Penalty at %i!\n\n", name.c_str(), penaltyCounter);
+            }
+            blockFill(addr, CACHE_SET_FILL, mem);
+            return true;
+        }
+    }
+    else{
+        penaltyCounter--;
+        if (DEBUG){
+            printf("%s: Miss! Penalty now at %i\n", name.c_str(), penaltyCounter);
+        }
+        if (penaltyCounter == 0){
+            if (DEBUG){
+                printf("%s: Penalty Over! Validating previously filled blocks.\n\n", name.c_str());
+            }
+            validateBlocks(addr, CACHE_SET_FILL);
+        }
+        return true;
+    }
 }
 

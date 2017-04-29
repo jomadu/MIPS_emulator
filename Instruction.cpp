@@ -20,6 +20,7 @@ Instruction::Instruction(){
     funct = 0x0;
     immed = 0x0;
     addr = 0x0;
+    type = "R";
 }
 void Instruction::toNOP(){
     opcode = 0x0;

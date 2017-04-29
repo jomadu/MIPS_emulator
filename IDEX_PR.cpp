@@ -11,15 +11,15 @@
 #include <iostream>
 
 IDEX_PR::IDEX_PR(){
-    regWrite = false;
-    memToReg = false;
-    branch = false;
-    memWrite = false;
-    memRead = false;
-    regDst = false;
-    ALUOp1 = false;
+    regDst = true;
     ALUOp0 = false;
+    ALUOp1 = true;
     ALUSrc = false;
+    branch = false;
+    memRead = false;
+    memWrite = false;
+    regWrite = true;
+    memToReg = false;
     pcnext = 0x0;
     regFileReadData1 = 0x0;
     regFileReadData2 = 0x0;

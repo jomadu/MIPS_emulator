@@ -111,12 +111,12 @@ void Memory::storeW(unsigned int dataW, unsigned int addr){
     return;
 }
 
-void Memory::storeHW(unsigned int dataHW, unsigned int addr, int offset){
+void Memory::storeHW(unsigned int dataHW, unsigned int addr){
     // Store instruction mc in low memory
-    addr = addr + offset;
+    unsigned int byteOffset = getByteOffset(addr);
     int memIdx = addr2idx(addr);
     
-    switch (offset % 4) {
+    switch (byteOffset % 4) {
         case 0:
             mem[memIdx] = (mem[memIdx] & HWH_MASK) | (dataHW & HWL_MASK);
             break;

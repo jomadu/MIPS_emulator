@@ -7,9 +7,11 @@
 //
 
 #include "IFID_PR.hpp"
+#include "Instruction.hpp"
 
 IFID_PR::IFID_PR(){
     pcnext = 0x0;
+    instr = Instruction();
 };
 
 void IFID_PR::print(){

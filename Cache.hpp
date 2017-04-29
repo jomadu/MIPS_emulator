@@ -12,8 +12,8 @@
 #include <stdio.h>
 #include <math.h>
 #include "Memory.hpp"
+#include "Testbench.hpp"
 
-#define NUM_BLOCK_FILL 4
 #define WORD_SIZE 32
 
 #define BYTE0_MASK 0x000000FF
@@ -34,9 +34,13 @@ public:
     
     Set * sets;
     int numSets;
-    int missPenalty;
+    int totalPenalty;
+    int readPenalty;
+    int writePenalty;
     int penaltyCounter;
     bool inPenalty;
+    
+    bool writtenThrough;
     
 private:
     string name;
@@ -51,13 +55,13 @@ private:
     
 public:
     Cache();
-    Cache(int nSets, int penalty, Memory &mem, string nm);
+    Cache(int nBytes, Memory &mem, string nm);
     unsigned int loadW(unsigned int addr, Memory &mem);
     unsigned int loadHWU(unsigned int addr, Memory &mem);
     int loadHW(unsigned int addr, Memory &mem);
     unsigned int loadBU(unsigned int addr, Memory &mem);
     int loadB(unsigned int addr, Memory &mem);
-    void storeW(unsigned int dataW, unsigned int addr, Memory &mem);
+    void storeW(unsigned int data, unsigned int addr, Memory &mem);
     void storeHW(unsigned int dataHW, unsigned int addr, Memory &mem);
     void storeB(unsigned int dataB, unsigned int addr, Memory &mem);
     void flush();
@@ -67,6 +71,7 @@ private:
     void validateBlocks(unsigned int addr, unsigned int nSets);
     void decodeCacheAddr(unsigned int &tag, unsigned int &idx, unsigned int &bOffset, unsigned int addr);
     unsigned int encodeCacheAddr(unsigned int tag, unsigned int idx, unsigned int bOffset);
+    bool evalLoadInPenalty(unsigned int tag, unsigned int idx, unsigned int byteOffset, unsigned int addr, Memory mem);
     
 };
 #endif /* iCache_hpp */
