@@ -254,7 +254,7 @@ void IF(){
             break;
     }
     // Determines BCA2
-    switch(forwardingUnit.branchForwardA){
+    switch(forwardingUnit.branchForwardB){
         case 0x0:
             branchCondArg2 = regFile.readReg(ifid.instr.rs);
             break;
