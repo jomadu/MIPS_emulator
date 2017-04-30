@@ -8,19 +8,24 @@
 
 #include "Memory.hpp"
 #include <iostream>
+#include <fstream>
 #include <sstream>
+#include "Constants.hpp"
+#include "Testbench.hpp"
 
 using namespace std;
 
+const int MAXLINECHAR = 100;
+
 Memory::Memory(){
-    mem = new unsigned int [MEMSIZE/4];
-    size = MEMSIZE;
+    mem = new unsigned int [MEMORY_SIZE/4];
+    size = MEMORY_SIZE;
 }
 
-Memory::Memory(char * iFile, unsigned int &pc){
-    mem = new unsigned int [MEMSIZE/4];
-    importFile(iFile, pc);
-    size = MEMSIZE;
+Memory::Memory(char * iFile){
+    mem = new unsigned int [MEMORY_SIZE/4];
+    importFile(iFile);
+    size = MEMORY_SIZE;
 }
 
 unsigned int Memory::loadW(unsigned int addr){
@@ -168,49 +173,39 @@ int Memory::addr2idx(unsigned int addr){
     return addr/4;
 }
 
-void Memory::importFile(char * iFile, unsigned int &pc){
-    char buffer[80];
-    char cData[80];
+int Memory::importFile(char * iFile){
+    char cData[MAXLINECHAR];
     string sData;
     unsigned long lData = 0x0;
     unsigned int iData = 0x0;
     unsigned int intMask = 0xFFFFFFFF;
     unsigned int addr = 0x0;
+
+    ifstream inFile (iFile);
     
-    FILE *fp;
-    bool firstLine = true;
-    stringstream ss;
-
-
-    if ((fp = fopen(iFile,"r")) == NULL)
+    if (!inFile)
     {
         printf("Could not open %s\n",iFile);
-        exit(1);
+        return -1;
     }
-
-    while ( !feof(fp))
+    
+    while (!inFile.eof())
     {
-        // read in the line and make sure it was successful
-        if (fgets(buffer,500,fp) != NULL)
-        {
-            sscanf(buffer, "%s", cData);
-            
-            ss << cData;
-            ss >> sData;
-            lData = stoul(sData.substr(2,8),nullptr,16);
-            iData = (lData & intMask);
-            
-            ss.clear();
-            
-            if(firstLine){
-                pc = addr;
-                firstLine = false;
-            }
-            
-            storeW(iData, addr);
-            addr += 4;
+        inFile.getline(cData, MAXLINECHAR);
+    
+        stringstream ss(cData);
+        ss >> sData;
+        lData = stoul(sData.substr(2,8),nullptr,16);
+        iData = (lData & intMask);
+        
+                
+        storeW(iData, addr);
+        addr += 4;
+        if (DEBUG){
+            printf("Stored 0x%X to addr 0x%X\n", iData, addr);
         }
     }
+    return 0;
 }
 
 void Memory::print(unsigned int startAddr, unsigned int size){

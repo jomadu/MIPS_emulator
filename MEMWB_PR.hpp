@@ -11,6 +11,8 @@
 
 #include <stdio.h>
 #include "Instruction.hpp"
+#include "Constants.hpp"
+#include "Testbench.hpp"
 
 class MEMWB_PR{
 public:

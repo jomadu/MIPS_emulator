@@ -14,15 +14,8 @@
 #include "IDEX_PR.hpp"
 #include "EXMEM_PR.hpp"
 #include "MEMWB_PR.hpp"
-
-#define BEQ "BEQ"
-#define BNE "BNE"
-#define BGTZ "BGTZ"
-#define BLTZ "BLTZ"
-#define BLEZ "BLEZ"
-#define J   "J"
-#define JAL  "JAL"
-#define JR   "JR"
+#include "Constants.hpp"
+#include "Testbench.hpp"
 
 class ForwardingUnit{
 public:

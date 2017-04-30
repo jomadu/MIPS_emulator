@@ -7,6 +7,8 @@
 //
 
 #include "RegisterFile.hpp"
+#include "Constants.hpp"
+#include "Testbench.hpp"
 
 RegisterFile::RegisterFile(){
     zero = 0x0;

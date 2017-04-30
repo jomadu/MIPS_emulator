@@ -6,8 +6,11 @@
 //  Copyright © 2017 Max Dunn. All rights reserved.
 //
 
+#include <stdio.h>
 #include "IFID_PR.hpp"
 #include "Instruction.hpp"
+#include "Constants.hpp"
+#include "Testbench.hpp"
 
 IFID_PR::IFID_PR(){
     pcnext = 0x0;

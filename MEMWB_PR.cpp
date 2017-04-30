@@ -7,6 +7,8 @@
 //
 
 #include "MEMWB_PR.hpp"
+#include "Constants.hpp"
+#include "Testbench.hpp"
 
 MEMWB_PR::MEMWB_PR(){
     regWrite = false;

@@ -7,6 +7,8 @@
 //
 
 #include "EXMEM_PR.hpp"
+#include "Constants.hpp"
+#include "Testbench.hpp"
 
 EXMEM_PR::EXMEM_PR(){
     regWrite = false;

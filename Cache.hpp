@@ -13,15 +13,7 @@
 #include <math.h>
 #include "Memory.hpp"
 #include "Testbench.hpp"
-
-#define WORD_SIZE 32
-
-#define BYTE0_MASK 0x000000FF
-#define BYTE1_MASK 0x0000FF00
-#define BYTE2_MASK 0x00FF0000
-#define BYTE3_MASK 0xFF000000
-
-#define debug true
+#include "Constants.hpp"
 
 class Cache{
 public:
@@ -41,6 +33,10 @@ public:
     bool inPenalty;
     
     bool writtenThrough;
+    
+    float hitRate;
+    int numAccesses;
+    int numHits;
     
 private:
     string name;
@@ -72,6 +68,7 @@ private:
     void decodeCacheAddr(unsigned int &tag, unsigned int &idx, unsigned int &bOffset, unsigned int addr);
     unsigned int encodeCacheAddr(unsigned int tag, unsigned int idx, unsigned int bOffset);
     bool evalLoadInPenalty(unsigned int tag, unsigned int idx, unsigned int byteOffset, unsigned int addr, Memory mem);
+    void updateHitRate(int numAccesses, int numHits);
     
 };
 #endif /* iCache_hpp */

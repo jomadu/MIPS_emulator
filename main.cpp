@@ -1,3 +1,4 @@
+
 //
 //  main.cpp
 //  MIPS-emulator
@@ -11,37 +12,21 @@
 #include <map>
 #include <vector>
 #include <stdio.h>
+#include <string.h>
 #include "MIPSStructures.hpp"
+#include "Constants.hpp"
 
 using namespace std;
-
-#define R   "R"
-#define LW  "LW"
-#define LB "LB"
-#define LH "LH"
-#define LHU  "LHU"
-#define LBU  "LBU"
-#define SW  "SW"
-#define SH "SH"
-#define SB  "SB"
-#define BEQ "BEQ"
-#define BNE "BNE"
-#define BGTZ "BGTZ"
-#define BLTZ "BLTZ"
-#define BLEZ "BLEZ"
-#define J   "J"
-#define JAL  "JAL"
-#define JR "JR"
-#define I   "I"
-#define MEMORYFILENAME "Regression-Testing/sw_test.txt"
 
 
 // Memory
 Memory memory;
 
-//
+// Cache
 Cache icache;
 Cache dcache;
+bool icachePrev_inPenalty = false;
+bool dcachePrev_inPenalty = false;
 
 // Program Counter
 unsigned int PC = 0x0;
@@ -878,8 +863,8 @@ void MEM(){
 }
 
 void executeClockCycle(){
-    if (debug){
-        printf("Executing Cycle...\n\n");
+    if (DEBUG){
+        printf("\nExecuting Cycle...\n\n");
     }
     IF();
     WB();
@@ -888,7 +873,7 @@ void executeClockCycle(){
     MEM();
     loadPR();
     
-    if (debug){
+    if (DEBUG){
         printf("|------------------------------|\n"
                "| State After Cycle Execution  |\n"
                "|------------------------------|\n\n");
@@ -900,17 +885,112 @@ void executeClockCycle(){
 }
 
 void startup(){
-    char file [] = MEMORYFILENAME;
-    memory.importFile(file, PC);
-    ifid.pcnext = PC;
+    char filePath[80];
+    
+    if (PROGRAM == 1){
+        strcpy(filePath, PROGRAM1);
+    }
+    else if (PROGRAM == 2){
+        strcpy(filePath, PROGRAM2);
+    }
+    else{
+        strcpy(filePath, TESTPROGRAM);
+    }
+    
+    int error = memory.importFile(filePath);
+    if (error){
+        exit(1);
+    }
     icache = Cache(I_CACHE_SIZE, memory, "iCache");
     dcache = Cache(D_CACHE_SIZE, memory, "dCache");
-}
-int main(int argc, const char * argv[]) {
-    startup();
-    for (int i = 0; i < 200; i++){
-        executeClockCycle();
+    if (PROGRAM == 1){
+        regFile.writeReg(29, memory.loadW(0x0));
+        regFile.writeReg(30, memory.loadW(0x4));
+        PC = memory.loadW(0x14);
     }
+    else if (PROGRAM == 2){
+        PC = 0x0;
+    }
+    else{
+        PC = 0x0;
+    }
+    ifid.pcnext = PC;
+    
+}
+
+void updateCacheHitRates(){
+    bool loadOrStoreInstrInMEMWBBUFF = false;
+    
+    if(icachePrev_inPenalty && icache.inPenalty){
+        // icache - no access, no numHits
+    }
+    else if (icachePrev_inPenalty && !icache.inPenalty){
+        // icache - no access, no numHits
+    }
+    else if (!icachePrev_inPenalty && icache.inPenalty){
+        // icache - access(dcache.inPenalty), no numHits
+        if (!dcache.inPenalty){
+            icache.numAccesses++;
+        }
+    }
+    else {
+        // icache - Access(dcache.inPenalty), hit(dcache.inPenalty)
+        if (!dcache.inPenalty){
+            icache.numHits++;
+            icache.numAccesses++;
+        }
+    }
+    
+    loadOrStoreInstrInMEMWBBUFF = (
+                               !memwb_buff.instr.type.compare(LW) ||
+                               !memwb_buff.instr.type.compare(LH) ||
+                               !memwb_buff.instr.type.compare(LHU) ||
+                               !memwb_buff.instr.type.compare(LB) ||
+                               !memwb_buff.instr.type.compare(LBU) ||
+                               !memwb_buff.instr.type.compare(SW) ||
+                               !memwb_buff.instr.type.compare(SH) ||
+                               !memwb_buff.instr.type.compare(SB)
+                               );
+    if (loadOrStoreInstrInMEMWBBUFF){
+        // Update dCache
+        if(dcachePrev_inPenalty && dcache.inPenalty){
+            // dcache - no access, no numHits
+        }
+        else if (dcachePrev_inPenalty && !dcache.inPenalty){
+            // dcache - no access, no numHits
+        }
+        else if (!dcachePrev_inPenalty && dcache.inPenalty){
+            // dcache - Access, no numHits
+            dcache.numAccesses++;
+        }
+        else {
+            // dcache - Access(icachePrev_inPenalty, icache.inPenalty), hit(icachePrev_inPenalty, icache.inPenalty)
+            dcache.numHits++;
+            dcache.numAccesses++;
+        }
+    }
+    
+    icache.hitRate = (float) icache.numHits / (float) icache.numAccesses * 100;
+    dcache.hitRate = (float) dcache.numHits / (float) dcache.numAccesses * 100;
+    
+    icachePrev_inPenalty = icache.inPenalty;
+    dcachePrev_inPenalty = dcache.inPenalty;
+}
+
+int main(int argc, const char * argv[]) {
+    int cycleCounter = 0;
+    startup();
+    while (PC != 0x0){
+        executeClockCycle();
+        updateCacheHitRates();
+        cycleCounter ++;
+        printf("|Cycles Completed: %15i | iCache hitRate: %f%% | dCache hitRate: %f%% |\n", cycleCounter, icache.hitRate, dcache.hitRate);
+    }
+    icache.print();
+    dcache.print();
+    regFile.print();
+    printPipeline();
+    memory.print(0, 10);
     return 0;
 }
 

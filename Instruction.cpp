@@ -9,6 +9,8 @@
 #include <iostream>
 #include <stdio.h>
 #include "Instruction.hpp"
+#include "Constants.hpp"
+#include "Testbench.hpp"
 using namespace std;
 
 Instruction::Instruction(){
@@ -20,7 +22,7 @@ Instruction::Instruction(){
     funct = 0x0;
     immed = 0x0;
     addr = 0x0;
-    type = "R";
+    type = R;
 }
 void Instruction::toNOP(){
     opcode = 0x0;
@@ -31,7 +33,7 @@ void Instruction::toNOP(){
     funct = 0x0;
     immed = 0x0;
     addr = 0x0;
-    type = "R";
+    type = R;
 }
 void Instruction::print(){
     printf("\nInstruction:\n"

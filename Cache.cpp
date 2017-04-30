@@ -9,6 +9,7 @@
 #include "Cache.hpp"
 #include "Memory.hpp"
 #include "Testbench.hpp"
+#include "Constants.hpp"
 
 Cache::Cache(){}
 
@@ -31,6 +32,10 @@ Cache::Cache(int nBytes, Memory &mem, string nm){
     tagMask = (0xFFFFFFFF << (WORD_SIZE-numTagBits));
     idxMask = (0xFFFFFFFF >> (WORD_SIZE-numIdxBits)) << (numByteOffsetBits);
     byteOffsetMask = (0xFFFFFFFF >> (WORD_SIZE-numByteOffsetBits));
+    
+    hitRate = 0;
+    numAccesses = 0;
+    numHits = 0;
     
 }
 
@@ -144,7 +149,7 @@ void Cache::storeW(unsigned int data, unsigned int addr, Memory &mem){
             else{
                 // Write Through
                 if (writtenThrough){
-                    if (debug){
+                    if (DEBUG){
                         printf("%s: Hit!\n\n", name.c_str());
                     }
                     writtenThrough = false;
@@ -223,6 +228,7 @@ void Cache::storeW(unsigned int data, unsigned int addr, Memory &mem){
         }
         inPenalty = true;
     }
+    
     return;
 }
 
@@ -270,7 +276,7 @@ void Cache::storeHW(unsigned int dataHW, unsigned int addr, Memory &mem){
             else{
                 // Write Through
                 if (writtenThrough){
-                    if (debug){
+                    if (DEBUG){
                         printf("%s: Hit!\n\n", name.c_str());
                     }
                     writtenThrough = false;
@@ -349,6 +355,7 @@ void Cache::storeHW(unsigned int dataHW, unsigned int addr, Memory &mem){
         }
         inPenalty = true;
     }
+    
     return;
 }
 
@@ -391,7 +398,7 @@ void Cache::storeB(unsigned int dataB, unsigned int addr, Memory &mem){
             else{
                 // Write Through
                 if (writtenThrough){
-                    if (debug){
+                    if (DEBUG){
                         printf("%s: Hit!\n\n", name.c_str());
                     }
                     writtenThrough = false;
@@ -437,6 +444,7 @@ void Cache::storeB(unsigned int dataB, unsigned int addr, Memory &mem){
             }
             inPenalty = true;
             blockFill(addr, CACHE_SET_FILL, mem);
+            numAccesses ++;
         }
     }
     else{
@@ -470,6 +478,7 @@ void Cache::storeB(unsigned int dataB, unsigned int addr, Memory &mem){
         }
         inPenalty = true;
     }
+    
     return;
 }
 
@@ -484,7 +493,7 @@ void Cache::blockFill(unsigned int addr, unsigned int nSets, Memory mem){
         decodeCacheAddr(tag, idx, byteOffset, addr);
         if (CACHE_WRITE_POLICY == 0){
             if (sets[idx].valid){
-                if (debug){
+                if (DEBUG){
                     printf("%s: Storing valid data at idx: 0x%X to memory.\n",name.c_str(), idx);
                 }
                 memAddr = encodeCacheAddr(sets[idx].tag, idx, byteOffset);
@@ -597,5 +606,10 @@ bool Cache::evalLoadInPenalty(unsigned int tag, unsigned int idx, unsigned int b
         }
         return true;
     }
+}
+
+void Cache::updateHitRate(int a, int h){
+    hitRate = (float)h / (float)a;
+    return;
 }
 

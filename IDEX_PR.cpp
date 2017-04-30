@@ -9,6 +9,8 @@
 #include "IDEX_PR.hpp"
 #include <stdio.h>
 #include <iostream>
+#include "Constants.hpp"
+#include "Testbench.hpp"
 
 IDEX_PR::IDEX_PR(){
     regDst = true;

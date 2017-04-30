@@ -13,6 +13,8 @@
 #include "IDEX_PR.hpp"
 #include "IFID_PR.hpp"
 #include "EXMEM_PR.hpp"
+#include "Constants.hpp"
+#include "Testbench.hpp"
 
 #define BEQ "BEQ"
 #define BNE "BNE"

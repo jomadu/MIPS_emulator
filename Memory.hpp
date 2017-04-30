@@ -11,16 +11,10 @@
 
 #include <stdio.h>
 #include <iostream>
-using namespace std;
+#include "Constants.hpp"
+#include "Testbench.hpp"
 
-#define MEMSIZE 5000
-#define BYTE0_MASK 0x000000FF
-#define BYTE1_MASK 0x0000FF00
-#define BYTE2_MASK 0x00FF0000
-#define BYTE3_MASK 0xFF000000
-#define HWL_MASK 0x0000FFFF
-#define HWM_MASK 0x00FFFF00
-#define HWH_MASK 0xFFFF0000
+using namespace std;
 
 class Memory{
 private:
@@ -29,7 +23,7 @@ public:
     int size;
 public:
     Memory();
-    Memory(char * iFile, unsigned int &pc);
+    Memory(char * iFile);
     unsigned int loadW(unsigned int addr);
     unsigned int loadHWU(unsigned int addr);
     int loadHW(unsigned int addr);
@@ -39,7 +33,7 @@ public:
     void storeHW(unsigned int dataHW, unsigned int addr);
     void storeB(unsigned int dataB, unsigned int addr);
     int addr2idx(unsigned int addr);
-    void importFile(char * iFile, unsigned int &pc);
+    int importFile(char * iFile);
     void print(unsigned int startAddr, unsigned int size);
     unsigned int getByteOffset(unsigned int addr);
 

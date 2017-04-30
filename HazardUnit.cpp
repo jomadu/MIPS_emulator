@@ -10,6 +10,8 @@
 #include "IFID_PR.hpp"
 #include "IDEX_PR.hpp"
 #include "EXMEM_PR.hpp"
+#include "Constants.hpp"
+#include "Testbench.hpp"
 
 HazardUnit::HazardUnit(){
     stall = false;
@@ -51,7 +53,7 @@ void HazardUnit::update(IFID_PR ifid_buff, IDEX_PR idex_buff){
     
     // Stall Logic
     if (ifidBuffIsRTypeBranchInstr){
-        if ((idex_buff_regFileWriteReg == ifid_buff.instr.rs) || (idex_buff_regFileWriteReg == ifid_buff.instr.rt)){
+        if ((idex_buff_regFileWriteReg != 0) && ((idex_buff_regFileWriteReg == ifid_buff.instr.rs) || (idex_buff_regFileWriteReg == ifid_buff.instr.rt))){
             stall = true;
         }
         else{
@@ -59,7 +61,7 @@ void HazardUnit::update(IFID_PR ifid_buff, IDEX_PR idex_buff){
         }
     }
     else if (ifidBuffIsITypeBranchInstr){
-        if (idex_buff_regFileWriteReg == ifid_buff.instr.rs){
+        if ((idex_buff_regFileWriteReg != 0) && (idex_buff_regFileWriteReg == ifid_buff.instr.rs)){
             stall = true;
         }
         else{
