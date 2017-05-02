@@ -1069,13 +1069,8 @@ int main(int argc, const char * argv[]) {
 //                   regFile.readReg(0x2));
         }
         else{
-            printf("PC: 0x%-4X (%4i) PrgL: %4i |CC: %i |Stall: %-6s |ic.inPen: %-6s |ic.penCntr: %i |dc.inPen: %-6s |dc.penCntr: %i\n",
-                   PC,PC,PC/4+1,cycleCounter,
-                   hazardUnit.stall ? "true": "false",
-                   icache.inPenalty ? "true": "false",
-                   icache.penaltyCounter,
-                   dcache.inPenalty ? "true": "false",
-                   dcache.penaltyCounter);
+            printf("PC: 0x%-4X (%4i) PrgL: %4i |CC: %i |\n",
+                   PC,PC,PC/4+1,cycleCounter);
         }
     }
     icache.print();

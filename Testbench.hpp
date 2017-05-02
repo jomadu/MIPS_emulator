@@ -25,13 +25,13 @@
 #define CACHE_R_SUBSQT_P 1 // 2
 
 #define DEBUG false
-#define END_AT_CYCLE 491073
+#define END_AT_CYCLE 847904
 
 #define PROGRAM 1
 
 #define TESTPROGRAM "Regression-Testing/add_test.txt"
 #define PROGRAM1 "Programs/Program1File1.txt"
-#define PROGRAM2 "Programs/Program2File1.txt"
+#define PROGRAM2 "Programs/Program2File1.txt" 
 
 
 #endif /* Testbench_hpp */
