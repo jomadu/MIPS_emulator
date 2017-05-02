@@ -20,12 +20,19 @@ const int MAXLINECHAR = 100;
 Memory::Memory(){
     mem = new unsigned int [MEMORY_SIZE/4];
     size = MEMORY_SIZE;
+    
+    for (int i = 0; i < size; i++){
+        mem[i] = 0;
+    }
 }
 
 Memory::Memory(char * iFile){
     mem = new unsigned int [MEMORY_SIZE/4];
     importFile(iFile);
     size = MEMORY_SIZE;
+    for (int i = 0; i < size; i++){
+        mem[i] = 0;
+    }
 }
 
 unsigned int Memory::loadW(unsigned int addr){
@@ -213,12 +220,13 @@ void Memory::print(unsigned int startAddr, unsigned int size){
     int addr;
     
     printf("\nMemory\n"
-           "-------------\n"
-           "...\n");
-    for (int i = size; i >= 0; i--){
+           "|--------------|-----------|-----------|\n"
+           "| idx          | addr      | data      | \n"
+           "|--------------|-----------|-----------|\n");
+    for (int i = 0; i <= size; i++){
         addr = startAddr + (i * 4);
         memIdx = addr2idx(addr);
-        printf("0x%X:\t0x%X\n\n", addr, mem[memIdx]);
+        printf("| %-12i | 0x%-8X | 0x%-8X |\n", memIdx, addr, mem[memIdx]);
     }
 }
 

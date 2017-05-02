@@ -504,11 +504,14 @@ void Cache::blockFill(unsigned int addr, unsigned int nSets, Memory mem){
         decodeCacheAddr(tag, idx, byteOffset, addr);
         if (CACHE_WRITE_POLICY == 0){
             if (sets[idx].valid){
-                if (DEBUG){
-                    printf("%s: Storing valid data at idx: 0x%X to memory.\n",name.c_str(), idx);
-                }
                 memAddr = encodeCacheAddr(sets[idx].tag, idx, byteOffset);
+                if (DEBUG){
+                    printf("%s: Storing valid data: 0x%X at idx: 0x%X to memory in addr: 0x%X.\n",name.c_str(),sets[idx].data,idx,memAddr);
+                }
                 mem.storeW(sets[idx].data, memAddr);
+                if (DEBUG){
+                    printf("%s: Memory at addr: 0x%X is now 0x%X\n",name.c_str(),memAddr,sets[idx].data);
+                }
             }
         }
         sets[idx].data = mem.loadW(addr);

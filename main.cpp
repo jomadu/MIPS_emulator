@@ -56,6 +56,9 @@ bool jumpFlag;
 int savedBranchTarget;
 int savedJumpTarget;
 
+int cycleCounter = 0;
+
+
 void printPipeline(){
     printf("|------------------------|--------------------------------|---------------------------------|---------------------------------|\n"
            "|IFID Pipeline Register  |IDEX Pipeline Register          |EXMEM Pipeline Register          |MEMWB Pipeline Register          |\n"
@@ -788,7 +791,7 @@ void EX(){
             break;
         case 0xC:
             // Bitwise NOR
-            exmem_buff.ALUResult = ~(ALUInput1 | ALUInput2);
+            exmem_buff.ALUResult = ~(ALUInput1U | ALUInput2U);
             break;
         case 0xD:
             // movz
@@ -808,7 +811,7 @@ void EX(){
             break;
         case 0xF:
             //BITWISE xor
-            exmem_buff.ALUResult = (ALUInput1 ^ ALUInput2);
+            exmem_buff.ALUResult = (ALUInput1U ^ ALUInput2U);
             break;
         case 0x10:
             //lui
@@ -837,6 +840,18 @@ void EX(){
         exmem_buff.regFileWriteReg = idex.instr.rt;
     }
     
+    
+    //Final Debugging
+    if (cycleCounter == 632563){
+        printf("ALUInput1 : 0x%X\n"
+               "ALUInput1U: 0x%X\n"
+               "ALUInput2 : 0x%X\n"
+               "ALUInput2U: 0x%X\n",
+               ALUInput1,
+               ALUInput1U,
+               ALUInput2,
+               ALUInput2U);
+    }
 }
 
 void MEM(){
@@ -1003,47 +1018,58 @@ void updateCacheHitRates(){
 }
 
 int main(int argc, const char * argv[]) {
-    int cycleCounter = 0;
     startup();
-    while (PC != 0x0){
+    while (PC != 0x0 && (cycleCounter <= END_AT_CYCLE)){
         executeClockCycle();
         updateCacheHitRates();
         cycleCounter ++;
         //printf("| PC: 0x%-8X | Cycles Completed: %15i | iCache hitRate: %8f%% | dCache hitRate: %8f%% |\n", PC, cycleCounter, icache.hitRate, dcache.hitRate);
         if (DEBUG){
+        //if ((cycleCounter >= 632508) && (cycleCounter <= 633000)){
             printf("PC: 0x%-4X (%4i) PrgL: %4i\n"
                    "CC: %i\n"
                    "Stall: %-6s\n"
                    "ic.inPen: %-6s\n"
                    "ic.penCntr: %i\n"
                    "dc.inPen: %-6s\n"
-                   "dc.penCntr: %i\n\n",
+                   "dc.penCntr: %i\n",
                    PC,PC,PC/4+1,cycleCounter,
                    hazardUnit.stall ? "true": "false",
                    icache.inPenalty ? "true": "false",
                    icache.penaltyCounter,
                    dcache.inPenalty ? "true": "false",
                    dcache.penaltyCounter);
-            printf("v0: 0x%X (%i) Address we are pulling data from in the a array\n"
+            printf("-Things----\n"
+                   "v0: 0x%X (%i) Address we are pulling data from in the a array\n"
                    "a0: 0x%X (%i) Ending condition\n"
-                   "a1: 0x%X (%i) Address we are storing data to in the b array\n"
+                   "a1: 0x%X (%i) Address we are storing data from in the b array\n"
                    "------------\n"
-                   "mem(v0) a[i]: 0x%X\n"
+                   "mem(v1) a[i]: 0x%X\n"
                    "mem(a1) b[i]: 0x%X\n",
                    regFile.readReg(0x2),regFile.readReg(0x2),
                    regFile.readReg(0x4),regFile.readReg(0x4),
                    regFile.readReg(0x5),regFile.readReg(0x5),
                    dcache.omnipotentRead(regFile.readReg(0x2),memory),
                    dcache.omnipotentRead(regFile.readReg(0x5),memory));
+//            printf("-Things----\n"
+//                   "v1: 0x%X (%i) Address we are pulling data from in the a array\n"
+//                   "a0: 0x%X (%i) Ending condition\n"
+//                   "a1: 0x%X (%i) Address we are pulling data from in the b array\n"
+//                   "------------\n"
+//                   "mem(v1) a[i]: 0x%X\n"
+//                   "mem(a1) b[i]: 0x%X\n"
+//                   "a3 = mem(v1) ^ mem(a1): 0x%X\n"
+//                   "v0 = 0x%0X\n\n",
+//                   regFile.readReg(0x3),regFile.readReg(0x3),
+//                   regFile.readReg(0x4),regFile.readReg(0x4),
+//                   regFile.readReg(0x5),regFile.readReg(0x5),
+//                   dcache.omnipotentRead(regFile.readReg(0x3),memory),
+//                   dcache.omnipotentRead(regFile.readReg(0x5),memory),
+//                   regFile.readReg(0x7),
+//                   regFile.readReg(0x2));
         }
         else{
-            printf("PC: 0x%-4X (%4i) PrgL: %4i |"
-                   "CC: %i |"
-                   "Stall: %-6s |"
-                   "ic.inPen: %-6s |"
-                   "ic.penCntr: %i |"
-                   "dc.inPen: %-6s |"
-                   "dc.penCntr: %i\n",
+            printf("PC: 0x%-4X (%4i) PrgL: %4i |CC: %i |Stall: %-6s |ic.inPen: %-6s |ic.penCntr: %i |dc.inPen: %-6s |dc.penCntr: %i\n",
                    PC,PC,PC/4+1,cycleCounter,
                    hazardUnit.stall ? "true": "false",
                    icache.inPenalty ? "true": "false",
@@ -1056,7 +1082,7 @@ int main(int argc, const char * argv[]) {
     dcache.print();
     regFile.print();
     printPipeline();
-    memory.print(0, 10);
+    memory.print(0, 1200);
     return 0;
 }
 
