@@ -24,7 +24,7 @@
 #define CACHE_R_STARTUP_P 1 // 8
 #define CACHE_R_SUBSQT_P 1 // 2
 
-#define DEBUG true
+#define DEBUG false
 
 #define PROGRAM 1
 

@@ -35,15 +35,34 @@ void ForwardingUnit::updateSTD(IDEX_PR idex, EXMEM_PR exmem, MEMWB_PR memwb){
     }
     
     // Memory Hazard Forwarding Detection
-    if ((memwb.regWrite) && (memwb.regFileWriteReg != 0) && (memwb.regFileWriteReg == idex.instr.rs)){
+    if ((memwb.regWrite) &&
+        (memwb.regFileWriteReg != 0) &&
+        !(exmem.regWrite && (exmem.regFileWriteReg != 0) && (exmem.regFileWriteReg != idex.instr.rt)) &&
+        (memwb.regFileWriteReg == idex.instr.rs))
+    {
         forwardA = 0x1;
     }
-    if ((memwb.regWrite) && (memwb.regFileWriteReg != 0) && (memwb.regFileWriteReg == idex.instr.rt)){
+    if ((memwb.regWrite) &&
+        (memwb.regFileWriteReg != 0) &&
+        !(exmem.regWrite && (exmem.regFileWriteReg != 0) && (exmem.regFileWriteReg != idex.instr.rt)) &&
+        (memwb.regFileWriteReg == idex.instr.rt)){
         forwardB = 0x1;
     }
     return;
 }
 void ForwardingUnit::updateBranching(IFID_PR ifid, EXMEM_PR exmem, MEMWB_PR memwb){
+    // branchForwardA -> branchCondArg1
+    // 0x0 -> regFile(ifid.rs)
+    // 0x1 -> regFile(ifid.rt)
+    // 0x2 -> exmem.ALUResult
+    // 0x3 -> memwb.memBypassData
+    //
+    // branchForwardB -> branchCondArg2
+    // 0x0 -> regFile(ifid.rs)
+    // 0x1 -> regFile(ifid.rt)
+    // 0x2 -> exmem.ALUResult
+    // 0x3 -> memwb.memBypassData
+    
     bool ifidIsRTypeBranchInstr = false;
     bool ifidIsITypeBranchInstr = false;
     
@@ -60,8 +79,6 @@ void ForwardingUnit::updateBranching(IFID_PR ifid, EXMEM_PR exmem, MEMWB_PR memw
     
     // Seperate out by I-Type and R-Type
     if (ifidIsRTypeBranchInstr){
-        //forwarding?
-        // which register to forward?
         if (exmem.regWrite && (ifid.instr.rs == exmem.regFileWriteReg)){
             branchForwardA = 0x2;
             if (memwb.regWrite && (ifid.instr.rt == memwb.regFileWriteReg)){
@@ -122,6 +139,13 @@ void ForwardingUnit::updateBranching(IFID_PR ifid, EXMEM_PR exmem, MEMWB_PR memw
     return;
 }
 void ForwardingUnit::updateJumping(IFID_PR ifid, EXMEM_PR exmem, MEMWB_PR memwb){
+    
+    // jumpForward -> jumpTargetArg
+    // 0x0 -> ifid.instr.addr
+    // 0x1 -> regFile(ifid.rs)
+    // 0x2 -> exmem.ALUResult
+    // 0x3 -> memwb.memBypassData
+    
     bool ifidIsRTypeJumpInstr = false;
     bool ifidIsJTypeJumpInstr = false;
     

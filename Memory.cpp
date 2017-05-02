@@ -218,7 +218,7 @@ void Memory::print(unsigned int startAddr, unsigned int size){
     for (int i = size; i >= 0; i--){
         addr = startAddr + (i * 4);
         memIdx = addr2idx(addr);
-        printf("0x%X:\t0x%X\n", addr, mem[memIdx]);
+        printf("0x%X:\t0x%X\n\n", addr, mem[memIdx]);
     }
 }
 

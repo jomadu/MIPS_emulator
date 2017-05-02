@@ -39,6 +39,17 @@ Cache::Cache(int nBytes, Memory &mem, string nm){
     
 }
 
+unsigned int Cache::omnipotentRead(unsigned int addr, Memory &mem){
+    unsigned int idx;
+    unsigned int tag;
+    unsigned int byteOffset;
+    
+    decodeCacheAddr(tag, idx, byteOffset, addr);
+        
+    return sets[idx].data;
+    
+}
+
 unsigned int Cache::loadW(unsigned int addr, Memory &mem){
     unsigned int idx;
     unsigned int tag;
@@ -527,22 +538,23 @@ void Cache::flush(){
 
 void Cache::print(){
     unsigned int addr;
-    printf("|-----------------------------------------------------|\n"
-           "| %-52s|\n"
-           "|----------|---|------------|------------|------------|\n"
-           "| idx      | v | tag        | data       | addr       |\n"
-           "|----------|---|------------|------------|------------|\n",name.c_str());
+    printf("|------------------------------------------------------------------|\n"
+           "| %-65s|\n"
+           "|----------|---|------------|------------|------------|------------|\n"
+           "| idx      | v | tag        | data       | addr       | memIdx     |\n"
+           "|----------|---|------------|------------|------------|------------|\n",name.c_str());
     
     for (unsigned int i = 0; i < numSets; i++){
         addr = encodeCacheAddr(sets[i].tag, i, 0);
-        printf("| 0x%-6X | %d | 0x%-8X | 0x%-8X | 0x%-8X |\n",
+        printf("| 0x%-6X | %d | 0x%-8X | 0x%-8X | 0x%-8X | %-10i |\n",
                i,
                sets[i].valid,
                sets[i].tag,
                sets[i].data,
-               addr);
+               addr,
+               addr/4);
     }
-    printf("|----------|---|------------|------------|------------|\n\n");
+    printf("|----------|---|------------|------------|------------|------------|\n\n");
 }
 
 void Cache::decodeCacheAddr(unsigned int &tag, unsigned int &idx, unsigned int &bOffset, unsigned int addr){

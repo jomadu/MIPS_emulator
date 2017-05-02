@@ -52,6 +52,7 @@ private:
 public:
     Cache();
     Cache(int nBytes, Memory &mem, string nm);
+    unsigned int omnipotentRead(unsigned int addr, Memory &mem);
     unsigned int loadW(unsigned int addr, Memory &mem);
     unsigned int loadHWU(unsigned int addr, Memory &mem);
     int loadHW(unsigned int addr, Memory &mem);

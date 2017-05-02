@@ -30,7 +30,7 @@ void HazardUnit::update(IFID_PR ifid_buff, IDEX_PR idex_buff){
         stall = false;
     }
     
-    //for branches
+    // For branches:
     // First, determine whether we have a i-type or r-type branch instruction in the ifid buff
     if ((!ifid_buff.instr.type.compare(BEQ)) ||
         (!ifid_buff.instr.type.compare(BNE))){

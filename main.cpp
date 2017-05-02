@@ -51,6 +51,11 @@ ForwardingUnit forwardingUnit;
 // Register File
 RegisterFile regFile;
 
+bool branchFlag;
+bool jumpFlag;
+int savedBranchTarget;
+int savedJumpTarget;
+
 void printPipeline(){
     printf("|------------------------|--------------------------------|---------------------------------|---------------------------------|\n"
            "|IFID Pipeline Register  |IDEX Pipeline Register          |EXMEM Pipeline Register          |MEMWB Pipeline Register          |\n"
@@ -212,6 +217,7 @@ void loadPR(){
     if (!dcache.inPenalty){
         if (hazardUnit.stall){
             ifid_buff.instr.toNOP();
+            ifid_buff.pcnext = PC;
         }
         ifid = ifid_buff;
         idex = idex_buff;
@@ -234,6 +240,14 @@ void IF(){
     
     forwardingUnit.updateBranching(ifid, exmem, memwb);
     forwardingUnit.updateJumping(ifid, exmem, memwb);
+    
+    // Compute the branch target from the sign extended immed field.
+    if (ifid.instr.immed >= 0x8000){
+        branchTarget = ((ifid.instr.immed | 0xFFFF0000) << 2) + ifid.pcnext;
+    }
+    else{
+        branchTarget = ((ifid.instr.immed) << 2) + ifid.pcnext;
+    }
     
     // Determines BCA1
     switch(forwardingUnit.branchForwardA){
@@ -273,43 +287,38 @@ void IF(){
     }
     
     // Evaluate the branch condition and if (branch in ifid)
+    branchInstrInIFID = true;
 	if (!ifid.instr.type.compare(BEQ)) {
 		regFileReadDataBranchCondMet = (branchCondArg1 == branchCondArg2);
-        branchInstrInIFID = true;
 	}
 	else if (!ifid.instr.type.compare(BNE)) {
 		regFileReadDataBranchCondMet = (branchCondArg1 != branchCondArg2);
-        branchInstrInIFID = true;
 	}
 	else if (!ifid.instr.type.compare(BLEZ)) {
 		regFileReadDataBranchCondMet = (branchCondArg1 <= 0);
-        branchInstrInIFID = true;
 	}
 	else if (!ifid.instr.type.compare(BGTZ)) {
 		regFileReadDataBranchCondMet = (branchCondArg1 > 0);
-        branchInstrInIFID = true;
 	}
 	else if (!ifid.instr.type.compare(BLTZ)) {
 		regFileReadDataBranchCondMet = (branchCondArg1 < 0);
-        branchInstrInIFID = true;
 	}
 	else {
 		regFileReadDataBranchCondMet = false;
         branchInstrInIFID = false;
 	}
     
-    // Computing Branch Target and Branch indicator (takeBranch)
-    if (ifid.instr.immed >= 0x8000){
-        branchTarget = ((ifid.instr.immed | 0xFFFF0000) << 2) + ifid.pcnext;
-    }
-    else{
-        branchTarget = ((ifid.instr.immed) << 2) + ifid.pcnext;
-    }
+    // Computing Branch indicator (takeBranch)
     takeBranch = (branchInstrInIFID && regFileReadDataBranchCondMet);
+    
+    if (branchInstrInIFID && takeBranch){
+        branchFlag = true;
+        savedBranchTarget = branchTarget;
+    }
     
     // Jump Stuff
     
-    // Determines JTA and Jump target and if (jump in ifid)
+    // Determines JTA and Jump target
     switch(forwardingUnit.jumpForward){
         case 0x0:
             jumpTargetArg = ifid.instr.addr;
@@ -332,46 +341,64 @@ void IF(){
             jumpTarget = (ifid.pcnext & 0xF0000000) | (jumpTargetArg << 2);
             break;
     }
+    
+    // Determine if there is a jump instr in the ifid field
     jumpInstrInIFID = (!ifid.instr.type.compare(J) || !ifid.instr.type.compare(JAL) || !ifid.instr.type.compare(JR));
     
+    if (jumpInstrInIFID){
+        jumpFlag = true;
+        savedJumpTarget = jumpTarget;
+    }
+    
     // PC input Mux
-    if(!hazardUnit.stall){
-        if (takeBranch){
-            // Branch in ID taken. Next PC is the branch target
-            if (jumpInstrInIFID){
-                PC = jumpTarget;
-            }
-            else{
-                PC = branchTarget;
-            }
-        }
-        else{
-            if (jumpInstrInIFID){
-                PC = jumpTarget;
-            }
-            else{
-                PC = ifid.pcnext;
-            }
-        }
+    if(hazardUnit.stall){
+        PC = PC;
+    }
+    else{
+        // PC stays the same
+        PC = ifid.pcnext;
     }
     
     // Fetch next instruction from PC address in iCache
     // ifid_buff.instr = decode(memory.fetch(PC));
     iCacheData = icache.loadW(PC, memory);
     
-    // Nominal operation
-    if (!icache.inPenalty){
-        ifid_buff.pcnext = PC + 4;
-        ifid_buff.instr = decode(iCacheData);
-        // This is a hack...if it work it ain't stupid
-        if (!ifid_buff.instr.type.compare(JAL)){
-            regFile.writeReg(31, PC + 8);
-        }
-    }
-    else{
-        ifid_buff.pcnext = PC;
+    bool icacheInPenalty = icache.inPenalty;
+    bool dcacheInPenalty = dcache.inPenalty && (dcache.penaltyCounter != 0);
+    
+    ifid_buff.instr = decode(iCacheData);
+
+    if (icache.inPenalty && dcacheInPenalty){
         ifid_buff.instr.toNOP();
+        ifid_buff.pcnext = PC;
     }
+    else if (icache.inPenalty && !dcacheInPenalty){
+        ifid_buff.instr.toNOP();
+        ifid_buff.pcnext = PC;
+    }
+    else if (!icache.inPenalty && dcacheInPenalty){
+        ifid_buff.pcnext = PC;
+    }
+    else if (!icache.inPenalty && !dcacheInPenalty){
+        if (branchFlag){
+            ifid_buff.pcnext = savedBranchTarget;
+            branchFlag = false;
+        }
+        else if (jumpFlag){
+            ifid_buff.pcnext = savedJumpTarget;
+            jumpFlag = false;
+        }
+        else{
+            ifid_buff.pcnext = PC + 4;
+        }
+        
+    }
+    
+    if (!ifid_buff.instr.type.compare(JAL)){
+        regFile.writeReg(31, PC + 8);
+    }
+    
+    
 }
 
 void WB(){
@@ -678,8 +705,6 @@ void EX(){
                     //xori
                     //since we have a bitwise immediate instr, we need ALUInput2 to be the zero-extended
                     ALUControl = 0xF;
-                    ALUInput2U = idex.zeroExtend;
-                    ALUInput2 = (int) ALUInput2U;
                     break;
                 default:
                     printf("Unknown I-type instruction with opcode: 0x%X\nDefaulting to sll...\n", idex.instr.opcode);
@@ -906,7 +931,7 @@ void startup(){
     if (PROGRAM == 1){
         regFile.writeReg(29, memory.loadW(0x0));
         regFile.writeReg(30, memory.loadW(0x4));
-        PC = memory.loadW(0x14);
+        PC = (memory.loadW(0x14) << 2);
     }
     else if (PROGRAM == 2){
         PC = 0x0;
@@ -984,7 +1009,48 @@ int main(int argc, const char * argv[]) {
         executeClockCycle();
         updateCacheHitRates();
         cycleCounter ++;
-        printf("|Cycles Completed: %15i | iCache hitRate: %f%% | dCache hitRate: %f%% |\n", cycleCounter, icache.hitRate, dcache.hitRate);
+        //printf("| PC: 0x%-8X | Cycles Completed: %15i | iCache hitRate: %8f%% | dCache hitRate: %8f%% |\n", PC, cycleCounter, icache.hitRate, dcache.hitRate);
+        if (DEBUG){
+            printf("PC: 0x%-4X (%4i) PrgL: %4i\n"
+                   "CC: %i\n"
+                   "Stall: %-6s\n"
+                   "ic.inPen: %-6s\n"
+                   "ic.penCntr: %i\n"
+                   "dc.inPen: %-6s\n"
+                   "dc.penCntr: %i\n\n",
+                   PC,PC,PC/4+1,cycleCounter,
+                   hazardUnit.stall ? "true": "false",
+                   icache.inPenalty ? "true": "false",
+                   icache.penaltyCounter,
+                   dcache.inPenalty ? "true": "false",
+                   dcache.penaltyCounter);
+            printf("v0: 0x%X (%i) Address we are pulling data from in the a array\n"
+                   "a0: 0x%X (%i) Ending condition\n"
+                   "a1: 0x%X (%i) Address we are storing data to in the b array\n"
+                   "------------\n"
+                   "mem(v0) a[i]: 0x%X\n"
+                   "mem(a1) b[i]: 0x%X\n",
+                   regFile.readReg(0x2),regFile.readReg(0x2),
+                   regFile.readReg(0x4),regFile.readReg(0x4),
+                   regFile.readReg(0x5),regFile.readReg(0x5),
+                   dcache.omnipotentRead(regFile.readReg(0x2),memory),
+                   dcache.omnipotentRead(regFile.readReg(0x5),memory));
+        }
+        else{
+            printf("PC: 0x%-4X (%4i) PrgL: %4i |"
+                   "CC: %i |"
+                   "Stall: %-6s |"
+                   "ic.inPen: %-6s |"
+                   "ic.penCntr: %i |"
+                   "dc.inPen: %-6s |"
+                   "dc.penCntr: %i\n",
+                   PC,PC,PC/4+1,cycleCounter,
+                   hazardUnit.stall ? "true": "false",
+                   icache.inPenalty ? "true": "false",
+                   icache.penaltyCounter,
+                   dcache.inPenalty ? "true": "false",
+                   dcache.penaltyCounter);
+        }
     }
     icache.print();
     dcache.print();
