@@ -992,7 +992,7 @@ void startup(){
 
 void finish(){
     memory.print(0, 1200);
-    printf("*************************************************************\n"
+    printf("\n*************************************************************\n"
            "*  _______                          __   __                 *\n"
            "* |    ___|.--.--.-----.----.--.--.|  |_|__|.-----.-----.   *\n"
            "* |    ___||_   _|  -__|  __|  |  ||   _|  ||  _  |     |   *\n"
@@ -1054,16 +1054,15 @@ void finish(){
 }
 
 int main(int argc, const char * argv[]) {
-    int lineCnt = 0;
     startup();
     while (PC != 0x0){
-        if (DEBUG && (cycleCounter > 11144)){
+        if (DEBUG){
             printf("\nExecuting Cycle...\n\n");
         }
         executeClockCycle();
         updateCacheHitRatesAndNumInstr();
         cycleCounter ++;
-        if (DEBUG && (cycleCounter > 11144)){
+        if (DEBUG){
             printf("|------------------------------|\n"
                    "| State After Cycle Execution  |\n"
                    "|------------------------------|\n\n");
@@ -1088,31 +1087,10 @@ int main(int argc, const char * argv[]) {
                    dcache.inPenalty ? "true": "false",
                    dcache.penaltyCounter,
                    dcache.hitRate);
-            if (PC == 0x9C){
-                if (regFile.readReg(0x7) != 32){
-                    printf("a3 character: %c, timesCnt: %i\n",regFile.readReg(0x7), lineCnt);
-                }
-                else{
-                    printf("a3 character: space, timesCnt: %i\n", lineCnt);
-                    
-                }
-                lineCnt++;
-            }
-            
         }
         else{
             printf("| PC: 0x%-4X (%4i) | PrgL: %4i | CC: %i | iCache HR: %-8.5f%% | dCache HR: %-8.5f%% |\n",
                    PC,PC,PC/4+1,cycleCounter,icache.hitRate,dcache.hitRate);
-            if (PC == 0x9C){
-                if (regFile.readReg(0x7) != 32){
-                printf("a3 character: %c, timesCnt: %i\n",regFile.readReg(0x7), lineCnt);
-                }
-                else{
-                    printf("a3 character: space, timesCnt: %i\n", lineCnt);
-
-                }
-                lineCnt++;
-            }
         }
     }
     finish();
