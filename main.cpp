@@ -157,6 +157,8 @@ void IF(){
     bool regFileReadDataBranchCondMet = false;
     bool branchInstrInIFID = false;
     bool jumpInstrInIFID = false;
+    bool loadInstrInMEMWB = false;
+    bool storeInstrInMEMWB = false;
     int branchTarget;
     int jumpTarget;
     unsigned int iCacheData;
@@ -166,6 +168,10 @@ void IF(){
     
     forwardingUnit.updateBranching(ifid, exmem, memwb);
     forwardingUnit.updateJumping(ifid, exmem, memwb);
+    
+    loadInstrInMEMWB = (!memwb.instr.type.compare(LW) || !memwb.instr.type.compare(LH) || !memwb.instr.type.compare(LHU) ||
+                        !memwb.instr.type.compare(LB) || !memwb.instr.type.compare(LBU));
+    storeInstrInMEMWB = (!memwb.instr.type.compare(SW) || !memwb.instr.type.compare(SH) || !memwb.instr.type.compare(SB));
     
     // Compute the branch target from the sign extended immed field.
     if (ifid.instr.immed >= 0x8000){
@@ -187,7 +193,16 @@ void IF(){
             branchCondArg1 = exmem.ALUResult;
             break;
         case 0x3:
-            branchCondArg1 = memwb.memReadData;
+            // branchCondArg1 = memwb.memBypassData; // This makes program 1 work
+            if (loadInstrInMEMWB){
+                branchCondArg1 = memwb.memReadData;
+            }
+            else if (storeInstrInMEMWB){
+                branchCondArg1 = memwb.memBypassData;
+            }
+            else{
+                branchCondArg1 = memwb.memBypassData;
+            }
             break;
         default:
             branchCondArg1 = regFile.readReg(ifid.instr.rs);
