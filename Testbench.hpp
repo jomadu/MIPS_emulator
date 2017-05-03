@@ -25,7 +25,7 @@
 #define CACHE_R_SUBSQT_P 1 // 2
 
 #define DEBUG false
-#define END_AT_CYCLE 847904
+#define END_AT_CYCLE 10000000
 
 #define PROGRAM 1
 

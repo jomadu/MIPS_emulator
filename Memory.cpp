@@ -220,9 +220,9 @@ void Memory::print(unsigned int startAddr, unsigned int size){
     int addr;
     
     printf("\nMemory\n"
-           "|--------------|-----------|-----------|\n"
-           "| idx          | addr      | data      | \n"
-           "|--------------|-----------|-----------|\n");
+           "|--------------|------------|------------|\n"
+           "| idx          | addr       | data       | \n"
+           "|--------------|------------|------------|\n");
     for (int i = 0; i <= size; i++){
         addr = startAddr + (i * 4);
         memIdx = addr2idx(addr);

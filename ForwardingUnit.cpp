@@ -37,14 +37,14 @@ void ForwardingUnit::updateSTD(IDEX_PR idex, EXMEM_PR exmem, MEMWB_PR memwb){
     // Memory Hazard Forwarding Detection
     if ((memwb.regWrite) &&
         (memwb.regFileWriteReg != 0) &&
-        !(exmem.regWrite && (exmem.regFileWriteReg != 0) && (exmem.regFileWriteReg != idex.instr.rt)) &&
+        //!(exmem.regWrite && (exmem.regFileWriteReg != 0) && (exmem.regFileWriteReg != idex.instr.rt)) &&
         (memwb.regFileWriteReg == idex.instr.rs))
     {
         forwardA = 0x1;
     }
     if ((memwb.regWrite) &&
         (memwb.regFileWriteReg != 0) &&
-        !(exmem.regWrite && (exmem.regFileWriteReg != 0) && (exmem.regFileWriteReg != idex.instr.rt)) &&
+        //!(exmem.regWrite && (exmem.regFileWriteReg != 0) && (exmem.regFileWriteReg != idex.instr.rt)) &&
         (memwb.regFileWriteReg == idex.instr.rt)){
         forwardB = 0x1;
     }

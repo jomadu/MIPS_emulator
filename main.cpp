@@ -659,10 +659,6 @@ void EX(){
                     //movn
                     ALUControl = 0xE;
                     break;
-                case 0xF:
-                    //lui
-                    ALUControl = 0x10;
-                    break;
                 default:
                     printf("Unknown R-type instruction with funct: 0x%X\nDefaulting to sll...\n", idex.instr.funct);
                     ALUControl = 0x4;
@@ -708,6 +704,10 @@ void EX(){
                     //xori
                     //since we have a bitwise immediate instr, we need ALUInput2 to be the zero-extended
                     ALUControl = 0xF;
+                    break;
+                case 0xF:
+                    //lui
+                    ALUControl = 0x10;
                     break;
                 default:
                     printf("Unknown I-type instruction with opcode: 0x%X\nDefaulting to sll...\n", idex.instr.opcode);
@@ -838,19 +838,6 @@ void EX(){
     }
     else{
         exmem_buff.regFileWriteReg = idex.instr.rt;
-    }
-    
-    
-    //Final Debugging
-    if (cycleCounter == 632563){
-        printf("ALUInput1 : 0x%X\n"
-               "ALUInput1U: 0x%X\n"
-               "ALUInput2 : 0x%X\n"
-               "ALUInput2U: 0x%X\n",
-               ALUInput1,
-               ALUInput1U,
-               ALUInput2,
-               ALUInput2U);
     }
 }
 
@@ -1024,8 +1011,9 @@ int main(int argc, const char * argv[]) {
         updateCacheHitRates();
         cycleCounter ++;
         //printf("| PC: 0x%-8X | Cycles Completed: %15i | iCache hitRate: %8f%% | dCache hitRate: %8f%% |\n", PC, cycleCounter, icache.hitRate, dcache.hitRate);
-        if (DEBUG){
-        //if ((cycleCounter >= 632508) && (cycleCounter <= 633000)){
+        //if (DEBUG){
+        if (cycleCounter >= 847918){
+            printPipeline();
             printf("PC: 0x%-4X (%4i) PrgL: %4i\n"
                    "CC: %i\n"
                    "Stall: %-6s\n"
@@ -1040,33 +1028,14 @@ int main(int argc, const char * argv[]) {
                    dcache.inPenalty ? "true": "false",
                    dcache.penaltyCounter);
             printf("-Things----\n"
-                   "v0: 0x%X (%i) Address we are pulling data from in the a array\n"
-                   "a0: 0x%X (%i) Ending condition\n"
-                   "a1: 0x%X (%i) Address we are storing data from in the b array\n"
-                   "------------\n"
-                   "mem(v1) a[i]: 0x%X\n"
-                   "mem(a1) b[i]: 0x%X\n",
-                   regFile.readReg(0x2),regFile.readReg(0x2),
-                   regFile.readReg(0x4),regFile.readReg(0x4),
+                   "v1: 0x%X (%i)\n"
+                   "a1: 0x%X (%i)\n"
+                   "a3: 0x%X (%i)\n"
+                   "t0: 0x%X (%i)\n",
+                   regFile.readReg(0x3),regFile.readReg(0x3),
                    regFile.readReg(0x5),regFile.readReg(0x5),
-                   dcache.omnipotentRead(regFile.readReg(0x2),memory),
-                   dcache.omnipotentRead(regFile.readReg(0x5),memory));
-//            printf("-Things----\n"
-//                   "v1: 0x%X (%i) Address we are pulling data from in the a array\n"
-//                   "a0: 0x%X (%i) Ending condition\n"
-//                   "a1: 0x%X (%i) Address we are pulling data from in the b array\n"
-//                   "------------\n"
-//                   "mem(v1) a[i]: 0x%X\n"
-//                   "mem(a1) b[i]: 0x%X\n"
-//                   "a3 = mem(v1) ^ mem(a1): 0x%X\n"
-//                   "v0 = 0x%0X\n\n",
-//                   regFile.readReg(0x3),regFile.readReg(0x3),
-//                   regFile.readReg(0x4),regFile.readReg(0x4),
-//                   regFile.readReg(0x5),regFile.readReg(0x5),
-//                   dcache.omnipotentRead(regFile.readReg(0x3),memory),
-//                   dcache.omnipotentRead(regFile.readReg(0x5),memory),
-//                   regFile.readReg(0x7),
-//                   regFile.readReg(0x2));
+                   regFile.readReg(0x7),regFile.readReg(0x7),
+                   regFile.readReg(0x8),regFile.readReg(0x8));
         }
         else{
             printf("PC: 0x%-4X (%4i) PrgL: %4i |CC: %i |\n",
