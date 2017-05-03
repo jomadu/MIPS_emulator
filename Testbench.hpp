@@ -14,7 +14,7 @@
 #define I_CACHE_SIZE 64
 #define D_CACHE_SIZE 1024
 
-#define CACHE_SET_FILL 4 // equivalent to block fill size
+#define CACHE_SET_FILL 1 // equivalent to block fill size
 
 #define CACHE_WRITE_POLICY 0 //0 - write back, 1 - write through
 

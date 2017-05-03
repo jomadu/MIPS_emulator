@@ -18,6 +18,7 @@
 
 using namespace std;
 
+char filePath[80];
 
 // Memory
 Memory memory;
@@ -278,7 +279,7 @@ void IF(){
     
     // PC input Mux
     if(hazardUnit.stall){
-        PC = PC;
+        // PC = PC;
     }
     else{
         // PC stays the same
@@ -956,7 +957,6 @@ void updateCacheHitRatesAndNumInstr(){
 }
 
 void startup(){
-    char filePath[80];
     
     if (PROGRAM == 1){
         strcpy(filePath, PROGRAM1);
@@ -980,7 +980,9 @@ void startup(){
         PC = (memory.loadW(0x14) << 2);
     }
     else if (PROGRAM == 2){
-        PC = 0x0;
+        regFile.writeReg(29, memory.loadW(0x0));
+        regFile.writeReg(30, memory.loadW(0x4));
+        PC = (memory.loadW(0x14) << 2);
     }
     else{
         PC = 0x0;
@@ -990,18 +992,66 @@ void startup(){
 }
 
 void finish(){
-    printf("************************************************************\n"
+    memory.print(0, 1200);
+    printf("*************************************************************\n"
            "*  _______                          __   __                 *\n"
            "* |    ___|.--.--.-----.----.--.--.|  |_|__|.-----.-----.   *\n"
            "* |    ___||_   _|  -__|  __|  |  ||   _|  ||  _  |     |   *\n"
-           "* |_______||__.__|_____|____|_____||____|__||_____|__|__|   *\n");
-    printf("*  ______                        __         __          __  *\n"
+           "* |_______||__.__|_____|____|_____||____|__||_____|__|__|   *\n"
+           "*  ______                        __         __          __  *\n"
            "* |      |.-----.--------.-----.|  |.-----.|  |_.-----.|  | *\n"
            "* |   ---||  _  |        |  _  ||  ||  -__||   _|  -__||__| *\n"
            "* |______||_____|__|__|__|   __||__||_____||____|_____||__| *\n"
            "*                        |__|                               *\n"
-           "*************************************************************\n");
-    memory.print(0, 1200);
+           "*************************************************************\n"
+           "*                                                           *\n"
+           "*   Inputs:                                                 *\n"
+           "*     \\                                                     *\n"
+           "*      \\--> iCache Size = %-12i                      *\n"
+           "*     \\                                                     *\n"
+           "*      \\--> dCache Size = %-12i                      *\n"
+           "*     \\                                                     *\n"
+           "*      \\--> Block Fill Size = %-12i                  *\n"
+           "*     \\                                                     *\n"
+           "*      \\--> Cache Write Policy = %-12s               *\n"
+           "*     \\                                                     *\n"
+           "*      \\--> Program = %-25s            *\n"
+           "*                                                           *\n"
+           "*   Results:                                                *\n"
+           "*     \\                                                     *\n"
+           "*      \\--> Memory[6] = %-12i                        *\n"
+           "*     \\                                                     *\n"
+           "*      \\--> Memory[7] = %-12i                        *\n"
+           "*     \\                                                     *\n"
+           "*      \\--> Memory[8] = %-12i                        *\n"
+           "*     \\                                                     *\n"
+           "*      \\--> Memory[9] = %-12i                        *\n"
+           "*     \\                                                     *\n"
+           "*      \\--> iCache Hit Rate = %-8.5f%%                     *\n"
+           "*     \\                                                     *\n"
+           "*      \\--> dCache Hit Rate = %-8.5f%%                     *\n"
+           "*     \\                                                     *\n"
+           "*      \\--> # of instructions = %-12i                *\n"
+           "*     \\                                                     *\n"
+           "*      \\--> Clock Cycles = %-12i                     *\n"
+           "*     \\                                                     *\n"
+           "*      \\--> CPI = %-6.3f                                    *\n"
+           "*                                                           *\n"
+           "*************************************************************\n",
+           I_CACHE_SIZE,
+           D_CACHE_SIZE,
+           CACHE_SET_FILL,
+           CACHE_WRITE_POLICY ? "Write Through" : "Write Back",
+           filePath,
+           memory.loadW(0x18),
+           memory.loadW(0x1C),
+           memory.loadW(0x20),
+           memory.loadW(0x24),
+           icache.hitRate,
+           dcache.hitRate,
+           icache.numAccesses,
+           cycleCounter,
+           (float)cycleCounter/(float)icache.numAccesses);
 }
 
 int main(int argc, const char * argv[]) {
