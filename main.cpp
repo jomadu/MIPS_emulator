@@ -1,4 +1,3 @@
-
 //
 //  main.cpp
 //  MIPS-emulator
@@ -188,7 +187,7 @@ void IF(){
             branchCondArg1 = exmem.ALUResult;
             break;
         case 0x3:
-            branchCondArg1 = memwb.memBypassData;
+            branchCondArg1 = memwb.memReadData;
             break;
         default:
             branchCondArg1 = regFile.readReg(ifid.instr.rs);
@@ -425,7 +424,7 @@ void ID(){
     
     idex_buff.zeroExtend = ifid.instr.immed;
     
-    hazardUnit.update(ifid_buff, idex_buff);
+    hazardUnit.update(ifid_buff, idex_buff,idex);
     
 }
 
@@ -1055,15 +1054,16 @@ void finish(){
 }
 
 int main(int argc, const char * argv[]) {
+    int lineCnt = 0;
     startup();
     while (PC != 0x0){
-        if (DEBUG){
+        if (DEBUG && (cycleCounter > 11144)){
             printf("\nExecuting Cycle...\n\n");
         }
         executeClockCycle();
         updateCacheHitRatesAndNumInstr();
         cycleCounter ++;
-        if (DEBUG){
+        if (DEBUG && (cycleCounter > 11144)){
             printf("|------------------------------|\n"
                    "| State After Cycle Execution  |\n"
                    "|------------------------------|\n\n");
@@ -1088,10 +1088,31 @@ int main(int argc, const char * argv[]) {
                    dcache.inPenalty ? "true": "false",
                    dcache.penaltyCounter,
                    dcache.hitRate);
+            if (PC == 0x9C){
+                if (regFile.readReg(0x7) != 32){
+                    printf("a3 character: %c, timesCnt: %i\n",regFile.readReg(0x7), lineCnt);
+                }
+                else{
+                    printf("a3 character: space, timesCnt: %i\n", lineCnt);
+                    
+                }
+                lineCnt++;
+            }
+            
         }
         else{
             printf("| PC: 0x%-4X (%4i) | PrgL: %4i | CC: %i | iCache HR: %-8.5f%% | dCache HR: %-8.5f%% |\n",
                    PC,PC,PC/4+1,cycleCounter,icache.hitRate,dcache.hitRate);
+            if (PC == 0x9C){
+                if (regFile.readReg(0x7) != 32){
+                printf("a3 character: %c, timesCnt: %i\n",regFile.readReg(0x7), lineCnt);
+                }
+                else{
+                    printf("a3 character: space, timesCnt: %i\n", lineCnt);
+
+                }
+                lineCnt++;
+            }
         }
     }
     finish();

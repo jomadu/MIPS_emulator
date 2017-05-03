@@ -27,7 +27,7 @@ public:
     bool stall;
 public:
     HazardUnit();
-    void update(IFID_PR ifid_buff, IDEX_PR idex_buff);
+    void update(IFID_PR ifid_buff, IDEX_PR idex_buff, IDEX_PR idex);
 };
 
 #endif /* HazardUnit_hpp */

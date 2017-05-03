@@ -9,24 +9,24 @@
 #ifndef Testbench_hpp
 #define Testbench_hpp
 
-#define MEMORY_SIZE 4800
+#define MEMORY_SIZE 10000
 
 #define I_CACHE_SIZE 64
 #define D_CACHE_SIZE 1024
 
-#define CACHE_SET_FILL 1 // equivalent to block fill size
+#define CACHE_SET_FILL 4 // equivalent to block fill size
 
 #define CACHE_WRITE_POLICY 0 //0 - write back, 1 - write through
 
-#define CACHE_W_STARTUP_P 6
-#define CACHE_W_SUBSQT_P 2
+#define CACHE_W_STARTUP_P 1
+#define CACHE_W_SUBSQT_P 1
 
-#define CACHE_R_STARTUP_P 8
-#define CACHE_R_SUBSQT_P 2
+#define CACHE_R_STARTUP_P 1
+#define CACHE_R_SUBSQT_P 1
 
 #define DEBUG false
 
-#define PROGRAM 1
+#define PROGRAM 2
 
 #define TESTPROGRAM "Regression-Testing/add_test.txt"
 #define PROGRAM1 "Programs/Program1File1.txt"

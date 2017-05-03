@@ -17,8 +17,9 @@ HazardUnit::HazardUnit(){
     stall = false;
 }
 
-void HazardUnit::update(IFID_PR ifid_buff, IDEX_PR idex_buff){
+void HazardUnit::update(IFID_PR ifid_buff, IDEX_PR idex_buff, IDEX_PR idex){
     unsigned int idex_buff_regFileWriteReg;
+    unsigned int exmem_buff_regFileWriteReg;
     bool ifidBuffIsRTypeBranchInstr = false;
     bool ifidBuffIsITypeBranchInstr = false;
     
@@ -51,9 +52,17 @@ void HazardUnit::update(IFID_PR ifid_buff, IDEX_PR idex_buff){
         idex_buff_regFileWriteReg = idex_buff.instr.rt;
     }
     
+    if (idex.regDst){
+        exmem_buff_regFileWriteReg = idex.instr.rd;
+    }
+    else{
+        exmem_buff_regFileWriteReg = idex.instr.rt;
+    }
+    
     // Stall Logic
     if (ifidBuffIsRTypeBranchInstr){
-        if ((idex_buff_regFileWriteReg != 0) && ((idex_buff_regFileWriteReg == ifid_buff.instr.rs) || (idex_buff_regFileWriteReg == ifid_buff.instr.rt))){
+        if (((idex_buff_regFileWriteReg != 0) && ((idex_buff_regFileWriteReg == ifid_buff.instr.rs) || (idex_buff_regFileWriteReg == ifid_buff.instr.rt))) ||
+            ((exmem_buff_regFileWriteReg != 0) && ((exmem_buff_regFileWriteReg == ifid_buff.instr.rs) || (exmem_buff_regFileWriteReg == ifid_buff.instr.rt)))){
             stall = true;
         }
         else{
@@ -61,7 +70,8 @@ void HazardUnit::update(IFID_PR ifid_buff, IDEX_PR idex_buff){
         }
     }
     else if (ifidBuffIsITypeBranchInstr){
-        if ((idex_buff_regFileWriteReg != 0) && (idex_buff_regFileWriteReg == ifid_buff.instr.rs)){
+        if (((idex_buff_regFileWriteReg != 0) && (idex_buff_regFileWriteReg == ifid_buff.instr.rs)) ||
+            ((exmem_buff_regFileWriteReg != 0) && (exmem_buff_regFileWriteReg == ifid_buff.instr.rs))){
             stall = true;
         }
         else{
