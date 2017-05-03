@@ -58,69 +58,6 @@ int savedJumpTarget;
 
 int cycleCounter = 0;
 
-
-void printPipeline(){
-    printf("|------------------------|--------------------------------|---------------------------------|---------------------------------|\n"
-           "|IFID Pipeline Register  |IDEX Pipeline Register          |EXMEM Pipeline Register          |MEMWB Pipeline Register          |\n"
-           "|------------------------|--------------------------------|---------------------------------|---------------------------------|\n"
-           "|Instruction:            |                                |                                 |                                 |\n"
-           "|------------            |------------                    |------------                     |------------                     |\n");
-    printf("|opcode: 0x%-14X|opcode: 0x%-22X|opcode: 0x%-23X|opcode: 0x%-23X|\n", ifid.instr.opcode,idex.instr.opcode,exmem.instr.opcode,memwb.instr.opcode);
-    printf("|rs:     0x%-14X|rs:     0x%-22X|rs:     0x%-23X|rs:     0x%-23X|\n", ifid.instr.rs,idex.instr.rs,exmem.instr.rs,memwb.instr.rs);
-    printf("|rt:     0x%-14X|rt:     0x%-22X|rt:     0x%-23X|rt:     0x%-23X|\n", ifid.instr.rt,idex.instr.rt,exmem.instr.rt,memwb.instr.rt);
-    printf("|rd:     0x%-14X|rd:     0x%-22X|rd:     0x%-23X|rd:     0x%-23X|\n", ifid.instr.rd,idex.instr.rd,exmem.instr.rd,memwb.instr.rd);
-    printf("|shamt:  0x%-14X|shamt:  0x%-22X|shamt:  0x%-23X|shamt:  0x%-23X|\n", ifid.instr.shamt,idex.instr.shamt,exmem.instr.shamt,memwb.instr.shamt);
-    printf("|funct:  0x%-14X|funct:  0x%-22X|funct:  0x%-23X|funct:  0x%-23X|\n", ifid.instr.funct,idex.instr.funct,exmem.instr.funct,memwb.instr.funct);
-    printf("|immed:  0x%-14X|immed:  0x%-22X|immed:  0x%-23X|immed:  0x%-23X|\n", ifid.instr.immed,idex.instr.immed,exmem.instr.immed,memwb.instr.immed);
-    printf("|addr:   0x%-14X|addr:   0x%-22X|addr:   0x%-23X|addr:   0x%-23X|\n", ifid.instr.addr,idex.instr.addr,exmem.instr.addr,memwb.instr.addr);
-    printf("|type:   %-16s|type:   %-24s|type:   %-25s|type:   %-25s|\n", ifid.instr.type.c_str(),idex.instr.type.c_str(),exmem.instr.type.c_str(),memwb.instr.type.c_str());
-    printf("|                        |                                |                                 |                                 |\n"
-           "|Other                   |                                |                                 |                                 |\n"
-           "|------------            |------------                    |------------                     |------------                     |\n");
-    printf("|PCnext: 0x%-14X|regWrite:           %-12s|regWrite:           %-13s|regWrite:           %-13s|\n",
-           ifid.pcnext,
-           idex.regWrite ? "true":"false",
-           exmem.regWrite ? "true": "false",
-           memwb.regWrite ? "true" : "false");
-    printf("|                        |memToReg:           %-12s|memToReg:           %-13s|memToReg:           %-13s|\n",
-           idex.memToReg ? "true":"false",
-           exmem.memToReg ? "true": "false",
-           memwb.memToReg ? "true" : "false");
-    printf("|                        |memWrite:           %-12s|memWrite:           %-13s|memReadData:        0x%-11X|\n",
-           idex.memWrite ? "true":"false",
-           exmem.memWrite ? "true": "false",
-           memwb.memReadData);
-    printf("|                        |memRead:            %-12s|memRead:            %-13s|memBypassData:      0x%-11X|\n",
-           idex.memRead ? "true":"false",
-           exmem.memRead ? "true": "false",
-           memwb.memBypassData);
-    printf("|                        |branch:             %-12s|ALUResult:          0x%-11X|                                 |\n",
-           idex.branch ? "true":"false",
-           exmem.ALUResult);
-    printf("|                        |regDst:             %-12s|memWriteData:       0x%-11X|                                 |\n",
-           idex.regDst ? "true":"false",
-           exmem.memWriteData);
-    printf("|                        |ALUOP0:             %-12s|regFileWriteReg:    0x%-11X|regFileWriteReg:    0x%-11X|\n",
-           idex.ALUOp0 ? "true":"false",
-           exmem.regFileWriteReg,
-           memwb.regFileWriteReg);
-    printf("|                        |ALUOP1:             %-12s|                                 |                                 |\n",
-           idex.ALUOp1 ? "true":"false");
-    printf("|                        |ALUsrc:             %-12s|                                 |                                 |\n",
-           idex.ALUSrc ? "true":"false");
-    printf("|                        |PCnext:             0x%-10X|                                 |                                 |\n",
-           idex.pcnext);
-    printf("|                        |regFileReadData1:   0x%-10X|                                 |                                 |\n",
-           idex.regFileReadData1);
-    printf("|                        |regFileReadData2:   0x%-10X|                                 |                                 |\n",
-           idex.regFileReadData2);
-    printf("|                        |signExtend:         0x%-10X|                                 |                                 |\n",
-           idex.signExtend);
-    printf("|                        |zeroExtend:         0x%-10X|                                 |                                 |\n",
-           idex.zeroExtend);
-    printf("|------------------------|--------------------------------|---------------------------------|---------------------------------|\n\n");
-}
-
 Instruction decode(unsigned int mc){
     Instruction myInstr;
     
@@ -213,20 +150,6 @@ Instruction decode(unsigned int mc){
     }
     
     return myInstr;
-}
-
-//  LoadPR
-void loadPR(){
-    if (!dcache.inPenalty){
-        if (hazardUnit.stall){
-            ifid_buff.instr.toNOP();
-            ifid_buff.pcnext = PC;
-        }
-        ifid = ifid_buff;
-        idex = idex_buff;
-        exmem = exmem_buff;
-        memwb = memwb_buff;
-    }
 }
 
 void IF(){
@@ -371,18 +294,18 @@ void IF(){
     
     ifid_buff.instr = decode(iCacheData);
 
-    if (icache.inPenalty && dcacheInPenalty){
+    if (icacheInPenalty && dcacheInPenalty){
         ifid_buff.instr.toNOP();
         ifid_buff.pcnext = PC;
     }
-    else if (icache.inPenalty && !dcacheInPenalty){
+    else if (icacheInPenalty && !dcacheInPenalty){
         ifid_buff.instr.toNOP();
         ifid_buff.pcnext = PC;
     }
-    else if (!icache.inPenalty && dcacheInPenalty){
+    else if (!icacheInPenalty && dcacheInPenalty){
         ifid_buff.pcnext = PC;
     }
-    else if (!icache.inPenalty && !dcacheInPenalty){
+    else if (!icacheInPenalty && !dcacheInPenalty){
         if (branchFlag){
             ifid_buff.pcnext = savedBranchTarget;
             branchFlag = false;
@@ -889,26 +812,147 @@ void MEM(){
     memwb_buff.regFileWriteReg = exmem.regFileWriteReg;
 }
 
-void executeClockCycle(){
-    if (DEBUG){
-        printf("\nExecuting Cycle...\n\n");
+void loadPR(){
+    if (!dcache.inPenalty){
+        if (hazardUnit.stall){
+            ifid_buff.instr.toNOP();
+            ifid_buff.pcnext = PC;
+        }
+        ifid = ifid_buff;
+        idex = idex_buff;
+        exmem = exmem_buff;
+        memwb = memwb_buff;
     }
+}
+
+void executeClockCycle(){
     IF();
     WB();
     ID();
     EX();
     MEM();
     loadPR();
+}
+
+void printPipeline(){
+    printf("|------------------------|--------------------------------|---------------------------------|---------------------------------|\n"
+           "|IFID Pipeline Register  |IDEX Pipeline Register          |EXMEM Pipeline Register          |MEMWB Pipeline Register          |\n"
+           "|------------------------|--------------------------------|---------------------------------|---------------------------------|\n"
+           "|Instruction:            |                                |                                 |                                 |\n"
+           "|------------            |------------                    |------------                     |------------                     |\n");
+    printf("|opcode: 0x%-14X|opcode: 0x%-22X|opcode: 0x%-23X|opcode: 0x%-23X|\n", ifid.instr.opcode,idex.instr.opcode,exmem.instr.opcode,memwb.instr.opcode);
+    printf("|rs:     0x%-14X|rs:     0x%-22X|rs:     0x%-23X|rs:     0x%-23X|\n", ifid.instr.rs,idex.instr.rs,exmem.instr.rs,memwb.instr.rs);
+    printf("|rt:     0x%-14X|rt:     0x%-22X|rt:     0x%-23X|rt:     0x%-23X|\n", ifid.instr.rt,idex.instr.rt,exmem.instr.rt,memwb.instr.rt);
+    printf("|rd:     0x%-14X|rd:     0x%-22X|rd:     0x%-23X|rd:     0x%-23X|\n", ifid.instr.rd,idex.instr.rd,exmem.instr.rd,memwb.instr.rd);
+    printf("|shamt:  0x%-14X|shamt:  0x%-22X|shamt:  0x%-23X|shamt:  0x%-23X|\n", ifid.instr.shamt,idex.instr.shamt,exmem.instr.shamt,memwb.instr.shamt);
+    printf("|funct:  0x%-14X|funct:  0x%-22X|funct:  0x%-23X|funct:  0x%-23X|\n", ifid.instr.funct,idex.instr.funct,exmem.instr.funct,memwb.instr.funct);
+    printf("|immed:  0x%-14X|immed:  0x%-22X|immed:  0x%-23X|immed:  0x%-23X|\n", ifid.instr.immed,idex.instr.immed,exmem.instr.immed,memwb.instr.immed);
+    printf("|addr:   0x%-14X|addr:   0x%-22X|addr:   0x%-23X|addr:   0x%-23X|\n", ifid.instr.addr,idex.instr.addr,exmem.instr.addr,memwb.instr.addr);
+    printf("|type:   %-16s|type:   %-24s|type:   %-25s|type:   %-25s|\n", ifid.instr.type.c_str(),idex.instr.type.c_str(),exmem.instr.type.c_str(),memwb.instr.type.c_str());
+    printf("|                        |                                |                                 |                                 |\n"
+           "|Other                   |                                |                                 |                                 |\n"
+           "|------------            |------------                    |------------                     |------------                     |\n");
+    printf("|PCnext: 0x%-14X|regWrite:           %-12s|regWrite:           %-13s|regWrite:           %-13s|\n",
+           ifid.pcnext,
+           idex.regWrite ? "true":"false",
+           exmem.regWrite ? "true": "false",
+           memwb.regWrite ? "true" : "false");
+    printf("|                        |memToReg:           %-12s|memToReg:           %-13s|memToReg:           %-13s|\n",
+           idex.memToReg ? "true":"false",
+           exmem.memToReg ? "true": "false",
+           memwb.memToReg ? "true" : "false");
+    printf("|                        |memWrite:           %-12s|memWrite:           %-13s|memReadData:        0x%-11X|\n",
+           idex.memWrite ? "true":"false",
+           exmem.memWrite ? "true": "false",
+           memwb.memReadData);
+    printf("|                        |memRead:            %-12s|memRead:            %-13s|memBypassData:      0x%-11X|\n",
+           idex.memRead ? "true":"false",
+           exmem.memRead ? "true": "false",
+           memwb.memBypassData);
+    printf("|                        |branch:             %-12s|ALUResult:          0x%-11X|                                 |\n",
+           idex.branch ? "true":"false",
+           exmem.ALUResult);
+    printf("|                        |regDst:             %-12s|memWriteData:       0x%-11X|                                 |\n",
+           idex.regDst ? "true":"false",
+           exmem.memWriteData);
+    printf("|                        |ALUOP0:             %-12s|regFileWriteReg:    0x%-11X|regFileWriteReg:    0x%-11X|\n",
+           idex.ALUOp0 ? "true":"false",
+           exmem.regFileWriteReg,
+           memwb.regFileWriteReg);
+    printf("|                        |ALUOP1:             %-12s|                                 |                                 |\n",
+           idex.ALUOp1 ? "true":"false");
+    printf("|                        |ALUsrc:             %-12s|                                 |                                 |\n",
+           idex.ALUSrc ? "true":"false");
+    printf("|                        |PCnext:             0x%-10X|                                 |                                 |\n",
+           idex.pcnext);
+    printf("|                        |regFileReadData1:   0x%-10X|                                 |                                 |\n",
+           idex.regFileReadData1);
+    printf("|                        |regFileReadData2:   0x%-10X|                                 |                                 |\n",
+           idex.regFileReadData2);
+    printf("|                        |signExtend:         0x%-10X|                                 |                                 |\n",
+           idex.signExtend);
+    printf("|                        |zeroExtend:         0x%-10X|                                 |                                 |\n",
+           idex.zeroExtend);
+    printf("|------------------------|--------------------------------|---------------------------------|---------------------------------|\n\n");
+}
+
+void updateCacheHitRatesAndNumInstr(){
+    bool loadOrStoreInstrInMEMWBBUFF = false;
     
-    if (DEBUG){
-        printf("|------------------------------|\n"
-               "| State After Cycle Execution  |\n"
-               "|------------------------------|\n\n");
-        icache.print();
-        dcache.print();
-        regFile.print();
-        printPipeline();
+    if(icachePrev_inPenalty && icache.inPenalty){
+        // icache - no access, no numHits
     }
+    else if (icachePrev_inPenalty && !icache.inPenalty){
+        // icache - no access, no numHits
+    }
+    else if (!icachePrev_inPenalty && icache.inPenalty){
+        // icache - access(dcache.inPenalty), no numHits
+        if (!dcache.inPenalty){
+            icache.numAccesses++;
+        }
+    }
+    else {
+        // icache - Access(dcache.inPenalty), hit(dcache.inPenalty)
+        if (!dcache.inPenalty){
+            icache.numHits++;
+            icache.numAccesses++;
+        }
+    }
+    
+    loadOrStoreInstrInMEMWBBUFF = (
+                                   !memwb_buff.instr.type.compare(LW) ||
+                                   !memwb_buff.instr.type.compare(LH) ||
+                                   !memwb_buff.instr.type.compare(LHU) ||
+                                   !memwb_buff.instr.type.compare(LB) ||
+                                   !memwb_buff.instr.type.compare(LBU) ||
+                                   !memwb_buff.instr.type.compare(SW) ||
+                                   !memwb_buff.instr.type.compare(SH) ||
+                                   !memwb_buff.instr.type.compare(SB)
+                                   );
+    if (loadOrStoreInstrInMEMWBBUFF){
+        // Update dCache
+        if(dcachePrev_inPenalty && dcache.inPenalty){
+            // dcache - no access, no numHits
+        }
+        else if (dcachePrev_inPenalty && !dcache.inPenalty){
+            // dcache - no access, no numHits
+        }
+        else if (!dcachePrev_inPenalty && dcache.inPenalty){
+            // dcache - Access, no numHits
+            dcache.numAccesses++;
+        }
+        else {
+            // dcache - Access(icachePrev_inPenalty, icache.inPenalty), hit(icachePrev_inPenalty, icache.inPenalty)
+            dcache.numHits++;
+            dcache.numAccesses++;
+        }
+    }
+    
+    icache.hitRate = (float) icache.numHits / (float) icache.numAccesses * 100;
+    dcache.hitRate = (float) dcache.numHits / (float) dcache.numAccesses * 100;
+    
+    icachePrev_inPenalty = icache.inPenalty;
+    dcachePrev_inPenalty = dcache.inPenalty;
 }
 
 void startup(){
@@ -945,108 +989,62 @@ void startup(){
     
 }
 
-void updateCacheHitRates(){
-    bool loadOrStoreInstrInMEMWBBUFF = false;
-    
-    if(icachePrev_inPenalty && icache.inPenalty){
-        // icache - no access, no numHits
-    }
-    else if (icachePrev_inPenalty && !icache.inPenalty){
-        // icache - no access, no numHits
-    }
-    else if (!icachePrev_inPenalty && icache.inPenalty){
-        // icache - access(dcache.inPenalty), no numHits
-        if (!dcache.inPenalty){
-            icache.numAccesses++;
-        }
-    }
-    else {
-        // icache - Access(dcache.inPenalty), hit(dcache.inPenalty)
-        if (!dcache.inPenalty){
-            icache.numHits++;
-            icache.numAccesses++;
-        }
-    }
-    
-    loadOrStoreInstrInMEMWBBUFF = (
-                               !memwb_buff.instr.type.compare(LW) ||
-                               !memwb_buff.instr.type.compare(LH) ||
-                               !memwb_buff.instr.type.compare(LHU) ||
-                               !memwb_buff.instr.type.compare(LB) ||
-                               !memwb_buff.instr.type.compare(LBU) ||
-                               !memwb_buff.instr.type.compare(SW) ||
-                               !memwb_buff.instr.type.compare(SH) ||
-                               !memwb_buff.instr.type.compare(SB)
-                               );
-    if (loadOrStoreInstrInMEMWBBUFF){
-        // Update dCache
-        if(dcachePrev_inPenalty && dcache.inPenalty){
-            // dcache - no access, no numHits
-        }
-        else if (dcachePrev_inPenalty && !dcache.inPenalty){
-            // dcache - no access, no numHits
-        }
-        else if (!dcachePrev_inPenalty && dcache.inPenalty){
-            // dcache - Access, no numHits
-            dcache.numAccesses++;
-        }
-        else {
-            // dcache - Access(icachePrev_inPenalty, icache.inPenalty), hit(icachePrev_inPenalty, icache.inPenalty)
-            dcache.numHits++;
-            dcache.numAccesses++;
-        }
-    }
-    
-    icache.hitRate = (float) icache.numHits / (float) icache.numAccesses * 100;
-    dcache.hitRate = (float) dcache.numHits / (float) dcache.numAccesses * 100;
-    
-    icachePrev_inPenalty = icache.inPenalty;
-    dcachePrev_inPenalty = dcache.inPenalty;
+void finish(){
+    printf("************************************************************\n"
+           "*  _______                          __   __                 *\n"
+           "* |    ___|.--.--.-----.----.--.--.|  |_|__|.-----.-----.   *\n"
+           "* |    ___||_   _|  -__|  __|  |  ||   _|  ||  _  |     |   *\n"
+           "* |_______||__.__|_____|____|_____||____|__||_____|__|__|   *\n");
+    printf("*  ______                        __         __          __  *\n"
+           "* |      |.-----.--------.-----.|  |.-----.|  |_.-----.|  | *\n"
+           "* |   ---||  _  |        |  _  ||  ||  -__||   _|  -__||__| *\n"
+           "* |______||_____|__|__|__|   __||__||_____||____|_____||__| *\n"
+           "*                        |__|                               *\n"
+           "*************************************************************\n");
+    memory.print(0, 1200);
 }
 
 int main(int argc, const char * argv[]) {
     startup();
-    while (PC != 0x0 && (cycleCounter <= END_AT_CYCLE)){
+    while (PC != 0x0){
+        if (DEBUG){
+            printf("\nExecuting Cycle...\n\n");
+        }
         executeClockCycle();
-        updateCacheHitRates();
+        updateCacheHitRatesAndNumInstr();
         cycleCounter ++;
-        //printf("| PC: 0x%-8X | Cycles Completed: %15i | iCache hitRate: %8f%% | dCache hitRate: %8f%% |\n", PC, cycleCounter, icache.hitRate, dcache.hitRate);
-        //if (DEBUG){
-        if (cycleCounter >= 847918){
+        if (DEBUG){
+            printf("|------------------------------|\n"
+                   "| State After Cycle Execution  |\n"
+                   "|------------------------------|\n\n");
+            icache.print();
+            dcache.print();
+            regFile.print();
             printPipeline();
             printf("PC: 0x%-4X (%4i) PrgL: %4i\n"
                    "CC: %i\n"
                    "Stall: %-6s\n"
                    "ic.inPen: %-6s\n"
                    "ic.penCntr: %i\n"
+                   "ic.hitrate: %-8.5f%%"
                    "dc.inPen: %-6s\n"
-                   "dc.penCntr: %i\n",
+                   "dc.penCntr: %i\n"
+                   "ic.hitrate: %-8.5f%%",
                    PC,PC,PC/4+1,cycleCounter,
                    hazardUnit.stall ? "true": "false",
                    icache.inPenalty ? "true": "false",
                    icache.penaltyCounter,
+                   icache.hitRate,
                    dcache.inPenalty ? "true": "false",
-                   dcache.penaltyCounter);
-            printf("-Things----\n"
-                   "v1: 0x%X (%i)\n"
-                   "a1: 0x%X (%i)\n"
-                   "a3: 0x%X (%i)\n"
-                   "t0: 0x%X (%i)\n",
-                   regFile.readReg(0x3),regFile.readReg(0x3),
-                   regFile.readReg(0x5),regFile.readReg(0x5),
-                   regFile.readReg(0x7),regFile.readReg(0x7),
-                   regFile.readReg(0x8),regFile.readReg(0x8));
+                   dcache.penaltyCounter,
+                   dcache.hitRate);
         }
         else{
-            printf("PC: 0x%-4X (%4i) PrgL: %4i |CC: %i |\n",
-                   PC,PC,PC/4+1,cycleCounter);
+            printf("| PC: 0x%-4X (%4i) | PrgL: %4i | CC: %i | iCache HR: %-8.5f%% | dCache HR: %-8.5f%% |\n",
+                   PC,PC,PC/4+1,cycleCounter,icache.hitRate,dcache.hitRate);
         }
     }
-    icache.print();
-    dcache.print();
-    regFile.print();
-    printPipeline();
-    memory.print(0, 1200);
+    finish();
     return 0;
 }
 

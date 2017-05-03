@@ -16,16 +16,15 @@
 
 #define CACHE_SET_FILL 4 // equivalent to block fill size
 
-#define CACHE_WRITE_POLICY 1 //0 - write back, 1 - write through
+#define CACHE_WRITE_POLICY 0 //0 - write back, 1 - write through
 
-#define CACHE_W_STARTUP_P 1 // 6
-#define CACHE_W_SUBSQT_P 1 // 2
+#define CACHE_W_STARTUP_P 6
+#define CACHE_W_SUBSQT_P 2
 
-#define CACHE_R_STARTUP_P 1 // 8
-#define CACHE_R_SUBSQT_P 1 // 2
+#define CACHE_R_STARTUP_P 8
+#define CACHE_R_SUBSQT_P 2
 
 #define DEBUG false
-#define END_AT_CYCLE 10000000
 
 #define PROGRAM 1
 

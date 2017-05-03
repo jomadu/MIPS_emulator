@@ -219,7 +219,8 @@ void Memory::print(unsigned int startAddr, unsigned int size){
     unsigned int memIdx;
     int addr;
     
-    printf("\nMemory\n"
+    printf("|----------------------------------------|\n"
+           "| Memory                                 |\n"
            "|--------------|------------|------------|\n"
            "| idx          | addr       | data       | \n"
            "|--------------|------------|------------|\n");
@@ -228,6 +229,7 @@ void Memory::print(unsigned int startAddr, unsigned int size){
         memIdx = addr2idx(addr);
         printf("| %-12i | 0x%-8X | 0x%-8X |\n", memIdx, addr, mem[memIdx]);
     }
+    printf("|--------------|------------|------------|\n");
 }
 
 unsigned int Memory::getByteOffset(unsigned int addr){
