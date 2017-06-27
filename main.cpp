@@ -5,7 +5,10 @@
 //  Created by Max Dunn on 2/16/17.
 //  Copyright © 2017 Max Dunn. All rights reserved.
 //
+//  Summary:
+//  This program is simulates a reduced instruction set MIPS processor.
 
+// Includes Statements
 #include <iostream>
 #include <sstream>
 #include <map>
@@ -13,10 +16,12 @@
 #include <stdio.h>
 #include <string.h>
 #include "MIPSStructures.hpp"
+#include "Testbench.hpp"
 #include "Constants.hpp"
 
 using namespace std;
 
+// Machine code input file path
 char filePath[80];
 
 // Memory
@@ -25,8 +30,8 @@ Memory memory;
 // Cache
 Cache icache;
 Cache dcache;
-bool icachePrev_inPenalty = false;
-bool dcachePrev_inPenalty = false;
+bool icachePrev_inPenalty = false; // Used for computing cache statistics
+bool dcachePrev_inPenalty = false; //               ``
 
 // Program Counter
 unsigned int PC = 0x0;
@@ -51,11 +56,13 @@ ForwardingUnit forwardingUnit;
 // Register File
 RegisterFile regFile;
 
+// Branch and Jump Variables
 bool branchFlag;
 bool jumpFlag;
 int savedBranchTarget;
 int savedJumpTarget;
 
+// Execution
 int cycleCounter = 0;
 
 Instruction decode(unsigned int mc){
@@ -87,7 +94,7 @@ Instruction decode(unsigned int mc){
     
     switch (myInstr.opcode) {
         case 0x0:
-            // Typically R type, butt...
+            // Typically R type, but...
             // JR is weird. We need a case statement here.
             if (myInstr.funct == 0x8){
                 myInstr.type = JR;
@@ -166,12 +173,24 @@ void IF(){
     int branchCondArg2;
     int jumpTargetArg;
     
+    
+    // **********************************
+    // * Setup for Forwarding/Branching *
+    // **********************************
+    
+    // Update Forwarding Logic for Branching and Jumping
     forwardingUnit.updateBranching(ifid, exmem, memwb);
     forwardingUnit.updateJumping(ifid, exmem, memwb);
     
+    // Check if load or store instruction is currently in the MEMWB phase
     loadInstrInMEMWB = (!memwb.instr.type.compare(LW) || !memwb.instr.type.compare(LH) || !memwb.instr.type.compare(LHU) ||
                         !memwb.instr.type.compare(LB) || !memwb.instr.type.compare(LBU));
     storeInstrInMEMWB = (!memwb.instr.type.compare(SW) || !memwb.instr.type.compare(SH) || !memwb.instr.type.compare(SB));
+    
+    
+    // *********************************
+    // * Branching Logic               *
+    // *********************************
     
     // Compute the branch target from the sign extended immed field.
     if (ifid.instr.immed >= 0x8000){
@@ -181,7 +200,7 @@ void IF(){
         branchTarget = ((ifid.instr.immed) << 2) + ifid.pcnext;
     }
     
-    // Determines BCA1
+    // Determines Branch Conditional Argument 1
     switch(forwardingUnit.branchForwardA){
         case 0x0:
             branchCondArg1 = regFile.readReg(ifid.instr.rs);
@@ -193,7 +212,6 @@ void IF(){
             branchCondArg1 = exmem.ALUResult;
             break;
         case 0x3:
-            // branchCondArg1 = memwb.memBypassData; // This makes program 1 work
             if (loadInstrInMEMWB){
                 branchCondArg1 = memwb.memReadData;
             }
@@ -208,7 +226,7 @@ void IF(){
             branchCondArg1 = regFile.readReg(ifid.instr.rs);
             break;
     }
-    // Determines BCA2
+    // Determines Branch Conditional Argument 2
     switch(forwardingUnit.branchForwardB){
         case 0x0:
             branchCondArg2 = regFile.readReg(ifid.instr.rs);
@@ -228,21 +246,25 @@ void IF(){
     }
     
     // Evaluate the branch condition and if (branch in ifid)
-    branchInstrInIFID = true;
 	if (!ifid.instr.type.compare(BEQ)) {
 		regFileReadDataBranchCondMet = (branchCondArg1 == branchCondArg2);
+        branchInstrInIFID = true;
 	}
 	else if (!ifid.instr.type.compare(BNE)) {
 		regFileReadDataBranchCondMet = (branchCondArg1 != branchCondArg2);
+        branchInstrInIFID = true;
 	}
 	else if (!ifid.instr.type.compare(BLEZ)) {
 		regFileReadDataBranchCondMet = (branchCondArg1 <= 0);
+        branchInstrInIFID = true;
 	}
 	else if (!ifid.instr.type.compare(BGTZ)) {
 		regFileReadDataBranchCondMet = (branchCondArg1 > 0);
+        branchInstrInIFID = true;
 	}
 	else if (!ifid.instr.type.compare(BLTZ)) {
 		regFileReadDataBranchCondMet = (branchCondArg1 < 0);
+        branchInstrInIFID = true;
 	}
 	else {
 		regFileReadDataBranchCondMet = false;
@@ -253,11 +275,13 @@ void IF(){
     takeBranch = (branchInstrInIFID && regFileReadDataBranchCondMet);
     
     if (branchInstrInIFID && takeBranch){
-        branchFlag = true;
-        savedBranchTarget = branchTarget;
+        branchFlag = true; // Cleared when branch has been completed
+        savedBranchTarget = branchTarget; // Holds branch target until branch has been completed
     }
     
-    // Jump Stuff
+    // *********************************
+    // * Jumping Logic                 *
+    // *********************************
     
     // Determines JTA and Jump target
     switch(forwardingUnit.jumpForward){
@@ -291,7 +315,10 @@ void IF(){
         savedJumpTarget = jumpTarget;
     }
     
-    // PC input Mux
+    // *********************************
+    // * Instruction Fetching          *
+    // *********************************
+    
     if(hazardUnit.stall){
         // PC = PC;
     }
@@ -301,13 +328,16 @@ void IF(){
     }
     
     // Fetch next instruction from PC address in iCache
-    // ifid_buff.instr = decode(memory.fetch(PC));
     iCacheData = icache.loadW(PC, memory);
     
     bool icacheInPenalty = icache.inPenalty;
     bool dcacheInPenalty = dcache.inPenalty && (dcache.penaltyCounter != 0);
     
     ifid_buff.instr = decode(iCacheData);
+    
+    // ******************************************
+    // * Branch/Jump/CacheInPenalty Adjustments *
+    // ******************************************
 
     if (icacheInPenalty && dcacheInPenalty){
         ifid_buff.instr.toNOP();
@@ -335,6 +365,11 @@ void IF(){
         
     }
     
+    // For the case of a JAL instruction,
+    // we need to set the $ra to PC +8.
+    // This may not be entirely kosher in terms
+    // of procedural accuracy, but it's the best
+    // place I can think of.
     if (!ifid_buff.instr.type.compare(JAL)){
         regFile.writeReg(31, PC + 8);
     }
@@ -356,6 +391,11 @@ void WB(){
 void ID(){
     idex_buff.instr = ifid.instr;
     
+    // *********************************
+    // * Evaluate Control Lines        *
+    // *********************************
+    
+    // R-type instructions
     if (!ifid.instr.type.compare(R)){
         idex_buff.regDst = true;
         idex_buff.ALUOp0 = false;
@@ -367,6 +407,7 @@ void ID(){
         idex_buff.regWrite = true;
         idex_buff.memToReg = false;
     }
+    // Load-Type instructions
     else if (!ifid.instr.type.compare(LW) || !ifid.instr.type.compare(LB) || !ifid.instr.type.compare(LH) || !ifid.instr.type.compare(LBU) || !ifid.instr.type.compare(LHU)){
         idex_buff.regDst = false;
         idex_buff.ALUOp0 = false;
@@ -378,6 +419,7 @@ void ID(){
         idex_buff.regWrite = true;
         idex_buff.memToReg = true;
     }
+    // Store-Type instructions
     else if (!ifid.instr.type.compare(SW) || !ifid.instr.type.compare(SH) || !ifid.instr.type.compare(SB)){
         idex_buff.regDst = false;
         idex_buff.ALUOp0 = false;
@@ -389,6 +431,7 @@ void ID(){
         idex_buff.regWrite = false;
         idex_buff.memToReg = false;
     }
+    // Branch-Type instructions
     else if (!ifid.instr.type.compare(BEQ) || !ifid.instr.type.compare(BNE) || !ifid.instr.type.compare(BLEZ) || !ifid.instr.type.compare(BGTZ) || !ifid.instr.type.compare(BLTZ)){
         idex_buff.regDst = false;
         idex_buff.ALUOp0 = true;
@@ -400,6 +443,7 @@ void ID(){
         idex_buff.regWrite = false;
         idex_buff.memToReg = false;
     }
+    // Jump-Type instructions
     else if (!ifid.instr.type.compare(J) || !ifid.instr.type.compare(JAL) || !ifid.instr.type.compare(JR)){
         idex_buff.regDst = false;
         idex_buff.ALUOp0 = false;
@@ -411,6 +455,7 @@ void ID(){
         idex_buff.regWrite = false;
         idex_buff.memToReg = false;
     }
+    // I-Type instructions
     else if (!ifid.instr.type.compare(I)){
         idex_buff.regDst = false;
         idex_buff.ALUOp0 = false;
@@ -426,9 +471,14 @@ void ID(){
         printf("ID: Unable to derive control lines from instruction.\n\n");
     }
 
+    // *********************************
+    // * ID Logic                      *
+    // *********************************
+    
     idex_buff.regFileReadData1 = regFile.readReg(ifid.instr.rs);
     idex_buff.regFileReadData2 = regFile.readReg(ifid.instr.rt);
     idex_buff.pcnext = ifid.pcnext;
+    
     
     if (ifid.instr.immed >= 0x8000){
         idex_buff.signExtend = ifid.instr.immed + 0xFFFF0000;
@@ -438,6 +488,10 @@ void ID(){
     }
     
     idex_buff.zeroExtend = ifid.instr.immed;
+    
+    // *********************************
+    // * Hazard Unit Updating          *
+    // *********************************
     
     hazardUnit.update(ifid_buff, idex_buff,idex);
     
@@ -455,6 +509,10 @@ void EX(){
     unsigned int shamtMask = 0x3E0;
     bool unsignedFlag = false;
     
+    // *********************************
+    // * EXMEM Logic                   *
+    // *********************************
+    
     exmem_buff.regWrite = idex.regWrite;
     exmem_buff.memToReg = idex.memToReg;
     exmem_buff.memRead = idex.memRead;
@@ -462,9 +520,15 @@ void EX(){
     
     exmem_buff.instr = idex.instr;
     
+    // *********************************
+    // * Update Standard Forwarding    *
+    // *********************************
     forwardingUnit.updateSTD(idex, exmem, memwb);
     
-    // Determine ALUInputs
+    // *********************************
+    // * Determine ALU inputs          *
+    // *********************************
+    
     // ALUInput1 Forwarding Mux
     switch (forwardingUnit.forwardA) {
         case 0x0:
@@ -517,6 +581,7 @@ void EX(){
             break;
     }
     
+    // Evaluate if sign extended immediate is needed
     if (idex.ALUSrc){
         ALUInput2U = idex.signExtend;
         ALUInput2 = (int) ALUInput2U;
@@ -526,7 +591,10 @@ void EX(){
         ALUInput2 = (int) ALUInput2U;
     }
     
-    // Determine ALU Controls
+    // *********************************
+    // * Determine ALU Controls        *
+    // *********************************
+    
     if (idex.ALUOp1 && !idex.ALUOp0){
         // R-type or I-Type instructions
         if (!idex.instr.type.compare(R)){
@@ -668,6 +736,10 @@ void EX(){
         ALUControl = 0x4;
     }
     
+    // *********************************
+    // * Evaluate ALU Inputs           *
+    // *********************************
+    
     switch (ALUControl) {
         case 0x0:
             // Bitwise AND
@@ -688,13 +760,11 @@ void EX(){
             break;
         case 0x3:
             // SRL
-            // TODO: May need to consider signed/unsigned int
             shamt = (idex.signExtend & shamtMask) >> 6;
             exmem_buff.ALUResult = ALUInput2 >> shamt;
             break;
         case 0x4:
             // SLL
-            // TODO: May need to consider signed/unsigned int
             shamt = (idex.signExtend & shamtMask) >> 6;
             exmem_buff.ALUResult = ALUInput2 << shamt;
             break;
@@ -771,6 +841,7 @@ void EX(){
     
     exmem_buff.memWriteData = ALUInput2ForwardingMux;
     
+    // Where is the ALUResult going?
     if (idex.regDst){
         exmem_buff.regFileWriteReg = idex.instr.rd;
     }
@@ -785,6 +856,10 @@ void MEM(){
     memwb_buff.instr = exmem.instr;
     memwb_buff.regWrite = exmem.regWrite;
     memwb_buff.memToReg = exmem.memToReg;
+    
+    // *********************************
+    // * Memory Load/Store Logic       *
+    // *********************************
     
     if (exmem.memRead && !exmem.memWrite){
         if (!exmem.instr.type.compare(LBU)){
@@ -914,25 +989,31 @@ void printPipeline(){
 void updateCacheHitRatesAndNumInstr(){
     bool loadOrStoreInstrInMEMWBBUFF = false;
     
+    // *********************************
+    // * iCache Statistics             *
+    // *********************************
+    
     if(icachePrev_inPenalty && icache.inPenalty){
-        // icache - no access, no numHits
+        // Do Nothing
     }
     else if (icachePrev_inPenalty && !icache.inPenalty){
-        // icache - no access, no numHits
+        // Do Nothing
     }
     else if (!icachePrev_inPenalty && icache.inPenalty){
-        // icache - access(dcache.inPenalty), no numHits
         if (!dcache.inPenalty){
             icache.numAccesses++;
         }
     }
     else {
-        // icache - Access(dcache.inPenalty), hit(dcache.inPenalty)
         if (!dcache.inPenalty){
             icache.numHits++;
             icache.numAccesses++;
         }
     }
+    
+    // *********************************
+    // * dCache Statistics             *
+    // *********************************
     
     loadOrStoreInstrInMEMWBBUFF = (
                                    !memwb_buff.instr.type.compare(LW) ||
@@ -962,6 +1043,10 @@ void updateCacheHitRatesAndNumInstr(){
             dcache.numAccesses++;
         }
     }
+    
+    // *********************************
+    // * Calculate Hit Rates           *
+    // *********************************
     
     icache.hitRate = (float) icache.numHits / (float) icache.numAccesses * 100;
     dcache.hitRate = (float) dcache.numHits / (float) dcache.numAccesses * 100;
@@ -1068,6 +1153,39 @@ void finish(){
            (float)cycleCounter/(float)icache.numAccesses);
 }
 
+void cyclePrintOut(){
+    if (DEBUG){
+        printf("|------------------------------|\n"
+               "| State After Cycle Execution  |\n"
+               "|------------------------------|\n\n");
+        icache.print();
+        dcache.print();
+        regFile.print();
+        printPipeline();
+        printf("PC: 0x%-4X (%4i) PrgL: %4i\n"
+               "CC: %i\n"
+               "Stall: %-6s\n"
+               "ic.inPen: %-6s\n"
+               "ic.penCntr: %i\n"
+               "ic.hitrate: %-8.5f%%"
+               "dc.inPen: %-6s\n"
+               "dc.penCntr: %i\n"
+               "ic.hitrate: %-8.5f%%",
+               PC,PC,PC/4+1,cycleCounter,
+               hazardUnit.stall ? "true": "false",
+               icache.inPenalty ? "true": "false",
+               icache.penaltyCounter,
+               icache.hitRate,
+               dcache.inPenalty ? "true": "false",
+               dcache.penaltyCounter,
+               dcache.hitRate);
+    }
+    else{
+        printf("| PC: 0x%-4X (%4i) | PrgL: %4i | CC: %i | iCache HR: %-8.5f%% | dCache HR: %-8.5f%% |\n",
+               PC,PC,PC/4+1,cycleCounter,icache.hitRate,dcache.hitRate);
+    }
+}
+
 int main(int argc, const char * argv[]) {
     startup();
     while (PC != 0x0){
@@ -1077,36 +1195,7 @@ int main(int argc, const char * argv[]) {
         executeClockCycle();
         updateCacheHitRatesAndNumInstr();
         cycleCounter ++;
-        if (DEBUG){
-            printf("|------------------------------|\n"
-                   "| State After Cycle Execution  |\n"
-                   "|------------------------------|\n\n");
-            icache.print();
-            dcache.print();
-            regFile.print();
-            printPipeline();
-            printf("PC: 0x%-4X (%4i) PrgL: %4i\n"
-                   "CC: %i\n"
-                   "Stall: %-6s\n"
-                   "ic.inPen: %-6s\n"
-                   "ic.penCntr: %i\n"
-                   "ic.hitrate: %-8.5f%%"
-                   "dc.inPen: %-6s\n"
-                   "dc.penCntr: %i\n"
-                   "ic.hitrate: %-8.5f%%",
-                   PC,PC,PC/4+1,cycleCounter,
-                   hazardUnit.stall ? "true": "false",
-                   icache.inPenalty ? "true": "false",
-                   icache.penaltyCounter,
-                   icache.hitRate,
-                   dcache.inPenalty ? "true": "false",
-                   dcache.penaltyCounter,
-                   dcache.hitRate);
-        }
-        else{
-            printf("| PC: 0x%-4X (%4i) | PrgL: %4i | CC: %i | iCache HR: %-8.5f%% | dCache HR: %-8.5f%% |\n",
-                   PC,PC,PC/4+1,cycleCounter,icache.hitRate,dcache.hitRate);
-        }
+        cyclePrintOut();
     }
     finish();
     return 0;

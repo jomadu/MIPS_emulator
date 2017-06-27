@@ -10,6 +10,7 @@
 #include "Memory.hpp"
 #include "Testbench.hpp"
 #include "Constants.hpp"
+#include <math.h>
 
 Cache::Cache(){}
 

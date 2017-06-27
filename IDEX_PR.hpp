@@ -11,8 +11,6 @@
 
 #include <stdio.h>
 #include "Instruction.hpp"
-#include "Constants.hpp"
-#include "Testbench.hpp"
 
 class IDEX_PR{
 public:

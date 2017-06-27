@@ -11,12 +11,12 @@
 
 #define MEMORY_SIZE 4800
 
-#define I_CACHE_SIZE 256
-#define D_CACHE_SIZE 128
+#define I_CACHE_SIZE 64
+#define D_CACHE_SIZE 512
 
-#define CACHE_SET_FILL 1 // equivalent to block fill size
+#define CACHE_SET_FILL 16 // equivalent to block fill size
 
-#define CACHE_WRITE_POLICY 0 //0 - write back, 1 - write through
+#define CACHE_WRITE_POLICY 1     //0 - write back, 1 - write through
 
 #define CACHE_W_STARTUP_P 6
 #define CACHE_W_SUBSQT_P 2

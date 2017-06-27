@@ -10,10 +10,7 @@
 #define Cache_hpp
 
 #include <stdio.h>
-#include <math.h>
 #include "Memory.hpp"
-#include "Testbench.hpp"
-#include "Constants.hpp"
 
 class Cache{
 public:

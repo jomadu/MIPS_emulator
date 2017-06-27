@@ -10,8 +10,6 @@
 #define RegisterFile_hpp
 
 #include <stdio.h>
-#include "Constants.hpp"
-#include "Testbench.hpp"
 
 class RegisterFile{
 public:

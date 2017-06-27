@@ -11,7 +11,6 @@
 #include "IDEX_PR.hpp"
 #include "EXMEM_PR.hpp"
 #include "Constants.hpp"
-#include "Testbench.hpp"
 
 HazardUnit::HazardUnit(){
     stall = false;

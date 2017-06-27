@@ -11,7 +11,6 @@
 #include "EXMEM_PR.hpp"
 #include "MEMWB_PR.hpp"
 #include "Constants.hpp"
-#include "Testbench.hpp"
 
 ForwardingUnit::ForwardingUnit(){
     forwardA = 0x0;
