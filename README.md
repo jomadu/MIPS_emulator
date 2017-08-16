@@ -1,41 +1,18 @@
- (   (   (       ) (       )       (    
- )\ ))\ ))\ ) ( /( )\ ) ( /(       )\ ) 
-(()/(()/(()/( )\()|()/( )\())   ( (()/( 
- /(_))(_))(_)|(_)\ /(_)|(_)\    )\ /(_))
-(_))(_))(_))__ ((_|_))  _((_)_ ((_|_))  
-/ __|_ _/ __\ \ / / _ \| || | | | / __| 
-\__ \| |\__ \\ V /|  _/| __ | |_| \__ \ 
-|___/___|___/ |_| |_|  |_||_|\___/|___/ 
+# SISYPHUS 
+## The MIPS EMULATOR that won't QUIT!
+### Author: Max Dunn & Thierry Shimoda
 
----------------------------------------
-  The MIPS EMULATOR that won't QUIT!
----------------------------------------
-May 2nd, 2017
-
-Authors:
----------
-John Dunn
-Thierry Shimoda
-
-System Requirements:
---------------------
+## System Requirements
 - Linux or Mac OSX environment
 - g++ compiler
 
-How To Configure:
------------------
-
-1. Open Testbench.hpp in a text editor.
-2. Change relevant parameters. Save.
-
-How To Run:
------------------
+## How To Run:
 
 1. Put all unzipped files into a single directory.
-   The exception to this is the ../Program/ directory,
+   - Note: The exception to this is the ‘../Program/‘ directory,
    which contains Program1File1.txt and Program2File1.txt.
    - Note: If you replace either Program with a new file,
-     make sure to adjust PROGRAM1 or PROGRAM2 #defines in
+     make sure to adjust `PROGRAM1` or `PROGRAM2` `#defines` in
      Testbench.hpp. (see above)
 2. Configure the Testbench.hpp to suit different 
    cache variations. (see above)
@@ -45,10 +22,10 @@ How To Run:
    program simulation. Output will be to Terminal.
 6. On termination of the program, the code outputs:
    1) The entire memory of our program
-   2) A summerized output
+   2) A summarized output
     
    Example Output:
-   ------------------
+   ```
    *************************************************************
    *  _______                          __   __                 *
    * |    ___|.--.--.-----.----.--.--.|  |_|__|.-----.-----.   *
@@ -94,4 +71,8 @@ How To Run:
    *      \--> CPI = 1.474                                     *
    *                                                           *
    *************************************************************
+   ```
+## How To Configure
 
+1. Open Testbench.hpp in a text editor.
+2. Change relevant parameters. Save.
